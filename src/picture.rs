@@ -1,10 +1,11 @@
+use errno::Errno;
+use libc;
+use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixelFormat};
 use std::{
     ffi::{c_int, c_uint},
+    mem,
     ops::{Deref, DerefMut},
 };
-
-use errno::Errno;
-use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixelFormat};
 
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
@@ -17,7 +18,10 @@ impl Picture {
         w: c_uint,
         h: c_uint,
     ) -> Result<Picture, Errno> {
-        let pic: *mut VmafPicture = std::ptr::null_mut();
+        let pic: *mut VmafPicture =
+            unsafe { libc::malloc(mem::size_of::<VmafPicture>()) as *mut VmafPicture };
+
+        assert!(!pic.is_null());
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bpc, w, h) };
         match err {
             0 => Ok(Picture { vmaf_picture: pic }),
@@ -49,13 +53,15 @@ impl Drop for Picture {
     }
 }
 
-#[cfg(test)]mod test{
-    use libvmaf_sys::{VmafPixelFormat_VMAF_PIX_FMT_YUV422P, vmaf_version};
+#[cfg(test)]
+mod test {
+    use libvmaf_sys::VmafPixelFormat_VMAF_PIX_FMT_YUV422P;
 
     use super::Picture;
 
-#[test]
-fn construct(){
-    let _pic = Picture::new(VmafPixelFormat_VMAF_PIX_FMT_YUV422P,8,1920,1080).expect("Recieved error code from constructor");
-}
+    #[test]
+    fn construct() {
+        let _pic = Picture::new(VmafPixelFormat_VMAF_PIX_FMT_YUV422P, 8, 1920, 1080)
+            .expect("Recieved error code from constructor");
+    }
 }
