@@ -3,6 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use errno::Errno;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixelFormat};
 
 pub struct Picture {
@@ -15,12 +16,12 @@ impl Picture {
         bpc: c_uint,
         w: c_uint,
         h: c_uint,
-    ) -> Result<Picture, c_int> {
+    ) -> Result<Picture, Errno> {
         let pic: *mut VmafPicture = std::ptr::null_mut();
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bpc, w, h) };
         match err {
             0 => Ok(Picture { vmaf_picture: pic }),
-            _ => Err(err),
+            _ => Err(Errno(-err)),
         }
     }
 }
@@ -46,4 +47,15 @@ impl Drop for Picture {
             vmaf_picture_unref(self.vmaf_picture);
         }
     }
+}
+
+#[cfg(test)]mod test{
+    use libvmaf_sys::{VmafPixelFormat_VMAF_PIX_FMT_YUV422P, vmaf_version};
+
+    use super::Picture;
+
+#[test]
+fn construct(){
+    let _pic = Picture::new(VmafPixelFormat_VMAF_PIX_FMT_YUV422P,8,1920,1080).expect("Recieved error code from constructor");
+}
 }
