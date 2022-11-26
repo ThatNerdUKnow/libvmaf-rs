@@ -1,4 +1,7 @@
-use std::ffi::{c_int, c_uint};
+use std::{
+    ffi::{c_int, c_uint},
+    ops::{Deref, DerefMut},
+};
 
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixelFormat};
 
@@ -19,6 +22,21 @@ impl Picture {
             0 => Ok(Picture { vmaf_picture: pic }),
             _ => Err(err),
         }
+    }
+}
+
+impl Deref for Picture {
+    type Target = VmafPicture;
+
+    fn deref(&self) -> &Self::Target {
+        // Yeah i'm pretty sure this is a no-no
+        unsafe { self.vmaf_picture.as_ref().unwrap() }
+    }
+}
+
+impl DerefMut for Picture {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.vmaf_picture }
     }
 }
 
