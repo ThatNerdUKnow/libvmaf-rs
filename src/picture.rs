@@ -2,7 +2,7 @@ use errno::Errno;
 use libc;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixelFormat};
 use std::{
-    ffi::{c_int, c_uint},
+    ffi::c_uint,
     mem,
     ops::{Deref, DerefMut},
 };
@@ -47,9 +47,13 @@ impl DerefMut for Picture {
 
 impl Drop for Picture {
     fn drop(&mut self) {
-        unsafe {
-            vmaf_picture_unref(self.vmaf_picture);
-        }
+        let err = unsafe {
+            vmaf_picture_unref(self.vmaf_picture)
+        };
+
+        if err < 0{
+            panic!("Got Error {:?} When dropping Picture",Errno(-err));
+        };
     }
 }
 
