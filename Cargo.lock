@@ -134,9 +134,9 @@ dependencies = [
 
 [[package]]
 name = "libvmaf-sys"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "229c23e45b7028d72f110ba72b3756fea417a41f69b5e7f796a718b1cd40e858"
+checksum = "1a2df813248fc6d929c2f7d66705dd7678f4a460d6dcc6e426b982da606d2c1f"
 dependencies = [
  "bindgen",
  "meson-next",
