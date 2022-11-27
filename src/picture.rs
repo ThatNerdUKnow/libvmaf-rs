@@ -4,7 +4,7 @@ use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixel
 use std::{
     ffi::c_uint,
     mem,
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut}, ptr,
 };
 
 pub struct Picture {
@@ -41,19 +41,45 @@ impl Deref for Picture {
 
 impl DerefMut for Picture {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        assert!(!self.vmaf_picture.is_null());
         unsafe { &mut *self.vmaf_picture }
     }
 }
 
 impl Drop for Picture {
     fn drop(&mut self) {
-        let err = unsafe {
-            vmaf_picture_unref(self.vmaf_picture)
-        };
+        // Allow FFI code to free its memory
+        unsafe {
+            // Each pointer in the data array should be valid at this point
+            (*self.vmaf_picture)
+                .data
+                .iter()
+                .for_each(|p| assert!(!p.is_null()));
 
-        if err < 0{
-            panic!("Got Error {:?} When dropping Picture",Errno(-err));
-        };
+            // Decrease reference count of self.vmaf_picture, which should free memory of vmaf_picture.data
+            let err = vmaf_picture_unref(self.vmaf_picture);
+
+            // Now that libvmaf has freed data referenced by vmaf_picture, each pointer in the data array should be null
+            (*self.vmaf_picture)
+                .data
+                .iter()
+                .for_each(|p| assert!(p.is_null()));
+
+            // If we recieved anything besides the "OK" code from libvmaf, panic
+            if err < 0 {
+                panic!("Got Error {:?} When dropping Picture", Errno(-err));
+            };
+        }
+
+        // Our raw pointer to vmaf_picture should still be valid
+        assert!(!self.vmaf_picture.is_null());
+
+        // Deallocate data pointed to by vmaf_picture and nullify vmaf_picture
+        unsafe {
+            libc::free(self.vmaf_picture as *mut libc::c_void);
+            self.vmaf_picture = ptr::null_mut();
+            assert!(self.vmaf_picture.is_null());
+        }
     }
 }
 

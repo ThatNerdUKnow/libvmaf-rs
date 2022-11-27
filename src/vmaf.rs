@@ -30,7 +30,7 @@ impl Drop for Vmaf {
     }
 }
 
-#[cfg(test)]
+#[cfg(never)]
 mod test {
     use libvmaf_sys::{VmafConfiguration, VmafLogLevel_VMAF_LOG_LEVEL_NONE};
 
