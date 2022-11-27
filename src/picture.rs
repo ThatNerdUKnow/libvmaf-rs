@@ -4,7 +4,8 @@ use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixel
 use std::{
     ffi::c_uint,
     mem,
-    ops::{Deref, DerefMut}, ptr,
+    ops::{Deref, DerefMut},
+    ptr,
 };
 
 pub struct Picture {
@@ -18,11 +19,17 @@ impl Picture {
         w: c_uint,
         h: c_uint,
     ) -> Result<Picture, Errno> {
+        // Allocate memory for VmafPicture
         let pic: *mut VmafPicture =
             unsafe { libc::malloc(mem::size_of::<VmafPicture>()) as *mut VmafPicture };
 
+        // Sanity check that our pointer is okay to use
         assert!(!pic.is_null());
+
+        // Let libvmaf do their thing with our pointer
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bpc, w, h) };
+
+        // Return an error if vmaf_picture_alloc returned an error code
         match err {
             0 => Ok(Picture { vmaf_picture: pic }),
             _ => Err(Errno(-err)),
@@ -91,6 +98,7 @@ mod test {
 
     #[test]
     fn construct() {
+        // Construct a new "Picture". Constructor and Drop should not panic
         let _pic = Picture::new(VmafPixelFormat_VMAF_PIX_FMT_YUV422P, 8, 1920, 1080)
             .expect("Recieved error code from constructor");
     }
