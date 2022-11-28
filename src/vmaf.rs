@@ -1,4 +1,7 @@
-use std::mem;
+use std::{
+    mem,
+    ops::{Deref, DerefMut},
+};
 
 use errno::Errno;
 pub use libvmaf_sys::VmafConfiguration;
@@ -42,6 +45,19 @@ impl Drop for Vmaf {
     }
 }
 
+impl Deref for Vmaf {
+    type Target = *mut VmafContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Vmaf {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 #[cfg(test)]
 mod test {
     use libvmaf_sys::{VmafConfiguration, VmafLogLevel_VMAF_LOG_LEVEL_NONE};
