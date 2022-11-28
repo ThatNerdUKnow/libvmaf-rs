@@ -17,15 +17,16 @@ impl Vmaf {
         // Our first pointer should be non-null
         assert!(ctx.is_null());
 
+        let mut vmaf:Vmaf = Vmaf(ctx);
         // Let vmaf do its thing with our pointer
-        let err = unsafe { vmaf_init(&mut ctx, config) };
+        let err = unsafe { vmaf_init(&mut *vmaf, config) };
 
         // ctx should no longer be null at this point
-        assert!(!ctx.is_null());
+        assert!(!(*vmaf).is_null());
 
         // Return an error if vmaf_init returned an error code
         match err {
-            0 => Ok(Vmaf(ctx)),
+            0 => Ok(vmaf),
             _ => Err(Errno(-err)),
         }
     }
