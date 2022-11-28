@@ -9,3 +9,6 @@ edition = "2021"
 "libvmaf-sys" = "0.1.5"
 "errno" = "0.2.8"
 "libc" = "0.2.137"
+
+[profile.release]
+lto = true

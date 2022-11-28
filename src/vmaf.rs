@@ -4,29 +4,25 @@ use errno::Errno;
 pub use libvmaf_sys::VmafConfiguration;
 use libvmaf_sys::{vmaf_close, vmaf_init, VmafContext};
 
-struct Vmaf(*mut *mut VmafContext);
+struct Vmaf(*mut VmafContext);
 
 impl Vmaf {
     pub fn new(config: VmafConfiguration) -> Result<Vmaf, Errno> {
         // Allocate enough memmory for VmafContext
-        let mut ctx: *mut libvmaf_sys::VmafContext =
-            unsafe { libc::malloc(mem::size_of::<VmafContext>()) as *mut VmafContext };
+        let mut ctx: *mut libvmaf_sys::VmafContext = std::ptr::null_mut();
 
         // Our first pointer should be non-null
-        assert!(!ctx.is_null());
-        let vmaf: Vmaf = Vmaf(&mut ctx);
-        // After constructing Vmaf newtype, internal double pointer should also be non-null
-        assert!(!vmaf.0.is_null());
-        unsafe {
-            assert!(!(*vmaf.0).is_null());
-        }
+        assert!(ctx.is_null());
 
         // Let vmaf do its thing with our pointer
-        let err = unsafe { vmaf_init(vmaf.0, config) };
+        let err = unsafe { vmaf_init(&mut ctx, config) };
+
+        // ctx should no longer be null at this point
+        assert!(!ctx.is_null());
 
         // Return an error if vmaf_init returned an error code
         match err {
-            0 => Ok(vmaf),
+            0 => Ok(Vmaf(ctx)),
             _ => Err(Errno(-err)),
         }
     }
@@ -35,9 +31,10 @@ impl Vmaf {
 impl Drop for Vmaf {
     fn drop(&mut self) {
         unsafe {
-            assert!(!(*self.0).is_null());
-            let err = vmaf_close(*self.0);
-
+            assert!(!self.0.is_null());
+            let err = vmaf_close(self.0);
+            self.0 = std::ptr::null_mut();
+            assert!(self.0.is_null());
             if err < 0 {
                 panic!("Got Error: {:?} when dropping Vmaf Context", Errno(-err));
             };
@@ -51,7 +48,7 @@ mod test {
 
     use super::Vmaf;
 
-    //#[test]
+    #[test]
     fn construct() {
         // Generate some dummy confiuguration since it's required by the constructor
         let config: VmafConfiguration = VmafConfiguration {
@@ -61,5 +58,7 @@ mod test {
             cpumask: 0,
         };
         let _vmaf = Vmaf::new(config).expect("Recieved error code from constructor");
+
+        drop(_vmaf)
     }
 }

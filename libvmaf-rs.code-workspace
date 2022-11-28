@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../libvmaf-sys"
+		},
+		{
+			"path": "../meson-rs"
+		}
+	],
+	"settings": {}
+}
