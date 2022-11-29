@@ -6,7 +6,7 @@ use std::{
 
 use errno::Errno;
 pub use libvmaf_sys::VmafModelConfig;
-use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel};
+use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags_VMAF_MODEL_FLAGS_DEFAULT, VmafModelFlags_VMAF_MODEL_FLAG_DISABLE_CLIP, VmafModelFlags_VMAF_MODEL_FLAG_ENABLE_TRANSFORM, VmafModelFlags_VMAF_MODEL_FLAG_DISABLE_TRANSFORM};
 
 pub struct Model(*mut VmafModel);
 
@@ -22,6 +22,21 @@ impl Model {
             0 => Ok(Model(ptr)),
             _ => Err(Errno(-err)),
         }
+    }
+}
+
+pub enum ModelFlags{
+    Default = VmafModelFlags_VMAF_MODEL_FLAGS_DEFAULT as isize,
+    DisableClip = VmafModelFlags_VMAF_MODEL_FLAG_DISABLE_CLIP as isize,
+    EnableTransform = VmafModelFlags_VMAF_MODEL_FLAG_ENABLE_TRANSFORM as isize,
+    DisableTransform = VmafModelFlags_VMAF_MODEL_FLAG_DISABLE_TRANSFORM as isize
+}
+
+pub struct ModelConfig(VmafModelConfig);
+
+impl ModelConfig{
+    pub fn new(name: *const c_char,flags: ModelFlags){
+        todo!()
     }
 }
 
@@ -45,5 +60,18 @@ impl Drop for Model {
             vmaf_model_destroy(self.0);
             assert!(self.0.is_null())
         }
+    }
+}
+
+#[cfg(test)]
+mod test{
+    use libvmaf_sys::VmafModelConfig;
+
+    use super::Model;
+
+    #[test]
+    fn construct(){
+        
+        todo!()
     }
 }

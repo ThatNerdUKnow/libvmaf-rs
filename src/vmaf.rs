@@ -1,23 +1,36 @@
-use std::{
-    mem,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use errno::Errno;
 pub use libvmaf_sys::VmafConfiguration;
-use libvmaf_sys::{vmaf_close, vmaf_init, VmafContext};
+use libvmaf_sys::{
+    vmaf_close, vmaf_init, VmafContext, VmafLogLevel, VmafLogLevel_VMAF_LOG_LEVEL_DEBUG,
+    VmafLogLevel_VMAF_LOG_LEVEL_ERROR, VmafLogLevel_VMAF_LOG_LEVEL_INFO,
+    VmafLogLevel_VMAF_LOG_LEVEL_NONE, VmafLogLevel_VMAF_LOG_LEVEL_WARNING,
+};
 
 struct Vmaf(*mut VmafContext);
 
 impl Vmaf {
-    pub fn new(config: VmafConfiguration) -> Result<Vmaf, Errno> {
+    pub fn new(
+        loglevel: LogLevel,
+        n_threads: u32,
+        n_subsample: u32,
+        cpumask: u64,
+    ) -> Result<Vmaf, Errno> {
+        // Build configuration type
+        let config = VmafConfiguration {
+            log_level: loglevel.into(),
+            n_threads: n_threads,
+            n_subsample: n_subsample,
+            cpumask: cpumask,
+        };
         // Allocate enough memmory for VmafContext
         let ctx: *mut libvmaf_sys::VmafContext = std::ptr::null_mut();
 
         // Our first pointer should be non-null
         assert!(ctx.is_null());
 
-        let mut vmaf:Vmaf = Vmaf(ctx);
+        let mut vmaf: Vmaf = Vmaf(ctx);
         // Let vmaf do its thing with our pointer
         let err = unsafe { vmaf_init(&mut *vmaf, config) };
 
@@ -28,6 +41,26 @@ impl Vmaf {
         match err {
             0 => Ok(vmaf),
             _ => Err(Errno(-err)),
+        }
+    }
+}
+
+pub enum LogLevel {
+    None,
+    Debug,
+    Info,
+    Warning,
+    Error,
+}
+
+impl Into<VmafLogLevel> for LogLevel {
+    fn into(self) -> VmafLogLevel {
+        match self {
+            LogLevel::None => VmafLogLevel_VMAF_LOG_LEVEL_NONE,
+            LogLevel::Debug => VmafLogLevel_VMAF_LOG_LEVEL_DEBUG,
+            LogLevel::Info => VmafLogLevel_VMAF_LOG_LEVEL_INFO,
+            LogLevel::Warning => VmafLogLevel_VMAF_LOG_LEVEL_WARNING,
+            LogLevel::Error => VmafLogLevel_VMAF_LOG_LEVEL_ERROR,
         }
     }
 }
@@ -61,20 +94,12 @@ impl DerefMut for Vmaf {
 }
 #[cfg(test)]
 mod test {
-    use libvmaf_sys::{VmafConfiguration, VmafLogLevel_VMAF_LOG_LEVEL_NONE};
-
-    use super::Vmaf;
+    use super::{LogLevel, Vmaf};
 
     #[test]
     fn construct() {
-        // Generate some dummy confiuguration since it's required by the constructor
-        let config: VmafConfiguration = VmafConfiguration {
-            log_level: VmafLogLevel_VMAF_LOG_LEVEL_NONE,
-            n_threads: 1,
-            n_subsample: 0,
-            cpumask: 0,
-        };
-        let _vmaf = Vmaf::new(config).expect("Recieved error code from constructor");
+        let _vmaf =
+            Vmaf::new(LogLevel::Debug, 1, 0, 0).expect("Recieved error code from constructor");
 
         drop(_vmaf)
     }
