@@ -1,4 +1,8 @@
-use std::{ffi::c_char, mem};
+use std::{
+    ffi::c_char,
+    mem,
+    ops::{Deref, DerefMut},
+};
 
 use errno::Errno;
 pub use libvmaf_sys::VmafModelConfig;
@@ -18,6 +22,20 @@ impl Model {
             0 => Ok(Model(ptr)),
             _ => Err(Errno(-err)),
         }
+    }
+}
+
+impl Deref for Model {
+    type Target = *mut VmafModel;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Model {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

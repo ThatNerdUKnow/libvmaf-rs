@@ -12,7 +12,7 @@ struct Vmaf(*mut VmafContext);
 impl Vmaf {
     pub fn new(config: VmafConfiguration) -> Result<Vmaf, Errno> {
         // Allocate enough memmory for VmafContext
-        let mut ctx: *mut libvmaf_sys::VmafContext = std::ptr::null_mut();
+        let ctx: *mut libvmaf_sys::VmafContext = std::ptr::null_mut();
 
         // Our first pointer should be non-null
         assert!(ctx.is_null());
