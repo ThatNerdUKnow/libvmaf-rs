@@ -38,18 +38,18 @@ impl Picture {
 }
 
 impl Deref for Picture {
-    type Target = VmafPicture;
+    type Target = *mut VmafPicture;
 
     fn deref(&self) -> &Self::Target {
-        // Yeah i'm pretty sure this is a no-no
-        unsafe { self.vmaf_picture.as_ref().unwrap() }
+        assert!(!self.vmaf_picture.is_null());
+        &self.vmaf_picture
     }
 }
 
 impl DerefMut for Picture {
     fn deref_mut(&mut self) -> &mut Self::Target {
         assert!(!self.vmaf_picture.is_null());
-        unsafe { &mut *self.vmaf_picture }
+         &mut self.vmaf_picture 
     }
 }
 
