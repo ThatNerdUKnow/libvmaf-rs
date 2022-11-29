@@ -15,9 +15,9 @@ pub struct Picture {
 impl Picture {
     pub fn new(
         pix_fmt: VmafPixelFormat,
-        bpc: c_uint,
-        w: c_uint,
-        h: c_uint,
+        bits_per_channel: c_uint,
+        width: c_uint,
+        height: c_uint,
     ) -> Result<Picture, Errno> {
         // Allocate memory for VmafPicture
         let pic: *mut VmafPicture =
@@ -27,7 +27,7 @@ impl Picture {
         assert!(!pic.is_null());
 
         // Let libvmaf do their thing with our pointer
-        let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bpc, w, h) };
+        let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bits_per_channel, width, height) };
 
         // Return an error if vmaf_picture_alloc returned an error code
         match err {
@@ -49,7 +49,7 @@ impl Deref for Picture {
 impl DerefMut for Picture {
     fn deref_mut(&mut self) -> &mut Self::Target {
         assert!(!self.vmaf_picture.is_null());
-         &mut self.vmaf_picture 
+        &mut self.vmaf_picture
     }
 }
 
