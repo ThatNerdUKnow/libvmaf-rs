@@ -92,14 +92,14 @@ impl Drop for Picture {
 
 #[cfg(test)]
 mod test {
-    use libvmaf_sys::VmafPixelFormat_VMAF_PIX_FMT_YUV422P;
+    use libvmaf_sys::VmafPixelFormat;
 
     use super::Picture;
 
     #[test]
     fn construct() {
         // Construct a new "Picture". Constructor and Drop should not panic
-        let _pic = Picture::new(VmafPixelFormat_VMAF_PIX_FMT_YUV422P, 8, 1920, 1080)
+        let _pic = Picture::new(VmafPixelFormat::VMAF_PIX_FMT_YUV422P, 8, 1920, 1080)
             .expect("Recieved error code from constructor");
     }
 }
