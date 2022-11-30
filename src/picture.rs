@@ -1,13 +1,13 @@
 use errno::Errno;
 use libc;
-use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture, VmafPixelFormat};
+pub use libvmaf_sys::VmafPixelFormat;
+use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
 use std::{
     ffi::c_uint,
     mem,
     ops::{Deref, DerefMut},
     ptr,
 };
-
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
 }

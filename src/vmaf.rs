@@ -2,23 +2,23 @@ use std::ops::{Deref, DerefMut};
 
 use errno::Errno;
 pub use libvmaf_sys::VmafConfiguration;
-use libvmaf_sys::{vmaf_close, vmaf_init, VmafContext, VmafLogLevel};
-
+use libvmaf_sys::{vmaf_close, vmaf_init, VmafContext};
+pub use libvmaf_sys::VmafLogLevel;
 struct Vmaf(*mut VmafContext);
 
 impl Vmaf {
     pub fn new(
-        loglevel: VmafLogLevel,
+        log_level: VmafLogLevel,
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
     ) -> Result<Vmaf, Errno> {
         // Build configuration type
         let config = VmafConfiguration {
-            log_level: loglevel.into(),
-            n_threads: n_threads,
-            n_subsample: n_subsample,
-            cpumask: cpumask,
+            log_level,
+            n_threads,
+            n_subsample,
+            cpumask,
         };
         // Allocate enough memmory for VmafContext
         let ctx: *mut libvmaf_sys::VmafContext = std::ptr::null_mut();
