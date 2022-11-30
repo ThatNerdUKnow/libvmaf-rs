@@ -1,9 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use errno::Errno;
-pub use libvmaf_sys::VmafConfiguration;
-use libvmaf_sys::{vmaf_close, vmaf_init, VmafContext};
 pub use libvmaf_sys::VmafLogLevel;
+use libvmaf_sys::{vmaf_close, vmaf_init, VmafConfiguration, VmafContext};
 struct Vmaf(*mut VmafContext);
 
 impl Vmaf {
