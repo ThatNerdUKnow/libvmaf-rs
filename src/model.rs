@@ -49,9 +49,9 @@ impl DerefMut for Model {
 impl Drop for Model {
     fn drop(&mut self) {
         unsafe {
+            assert!(!self.0.is_null());
             vmaf_model_destroy(self.0);
             self.0 = std::ptr::null_mut();
-            assert!(self.0.is_null());
         }
     }
 }

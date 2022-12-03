@@ -46,7 +46,6 @@ impl Drop for Vmaf {
             assert!(!self.0.is_null());
             let err = vmaf_close(self.0);
             self.0 = std::ptr::null_mut();
-            assert!(self.0.is_null());
             if err < 0 {
                 panic!("Got Error: {:?} when dropping Vmaf Context", Errno(-err));
             };
