@@ -3,7 +3,6 @@ pub use libvmaf_sys::VmafModelConfig;
 use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags};
 use std::{
     ffi::{c_char, CString},
-    mem,
     ops::{Deref, DerefMut},
 };
 
@@ -11,8 +10,7 @@ pub struct Model(*mut VmafModel);
 
 impl Model {
     pub fn new(config: VmafModelConfig, version: String) -> Result<Model, Errno> {
-        let mut ptr: *mut VmafModel =
-            unsafe { libc::malloc(mem::size_of::<VmafModel>()) as *mut VmafModel };
+        let mut ptr: *mut VmafModel = std::ptr::null_mut();
         let mut config = config.clone();
 
         let version_cstring: CString = CString::new(version).unwrap();
