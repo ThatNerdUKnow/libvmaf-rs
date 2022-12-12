@@ -1,4 +1,4 @@
-use std::{cell::Cell, path::Path};
+use std::path::Path;
 
 use anyhow::anyhow;
 use ffmpeg_next::{
@@ -65,10 +65,28 @@ impl Video {
         })
     }
 }
-/*
-impl Iterator for Video<'_> {
-    type Item = ffmpeg_next::frame::video::Video;
 
-    fn next(&mut self) -> Option<Self::Item> {}
+impl Iterator for Video {
+    type Item = ffmpeg_next::frame::Video;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.video_index;
+        self.input
+            .packets()
+            .filter(|(stream, _packet)| match stream.index() {
+                index => true,
+                _ => false,
+            })
+            .map(|(_stream, packet)| packet)
+            .map(|packet| {
+                self.decoder.send_packet(&packet).unwrap();
+                let mut frame = ffmpeg_next::frame::Video::empty();
+                self.decoder.receive_frame(&mut frame).unwrap();
+
+                let mut scaled_frame = ffmpeg_next::frame::Video::empty();
+                self.scaler.run(&frame, &mut scaled_frame).unwrap();
+                scaled_frame.to_owned()
+            })
+            .next()
+    }
 }
-*/
