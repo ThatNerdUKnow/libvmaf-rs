@@ -73,10 +73,7 @@ impl Iterator for Video {
         let index = self.video_index;
         self.input
             .packets()
-            .filter(|(stream, _packet)| match stream.index() {
-                index => true,
-                _ => false,
-            })
+            .filter(|(stream, _packet)| stream.index() == index)
             .map(|(_stream, packet)| packet)
             .map(|packet| {
                 self.decoder.send_packet(&packet).unwrap();
