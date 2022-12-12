@@ -11,28 +11,29 @@ use libvmaf_sys::VmafPixelFormat;
 
 pub struct Video {
     input: Input,
+    decoder: ffmpeg_next::codec::decoder::Video,
+    scaler: Context,
+    video_index: usize,
     pixel_format: VmafPixelFormat,
-    desired_width: u32,
-    desired_height: u32,
 }
 
-impl Video<'_> {
+impl Video {
     pub fn new(
         path: &dyn AsRef<Path>,
         format: VmafPixelFormat,
         w: u32,
         h: u32,
     ) -> Result<Video, anyhow::Error> {
-        let context = input(&path)?;
+        let input = input(&path)?;
 
-        /*let input:Stream = context
+        let input_stream: Stream = input
             .streams()
             .best(Type::Video)
             .ok_or(Error::StreamNotFound)?;
-        let video_index = input.index();
+        let video_index = input_stream.index();
 
         let context_decoder =
-            ffmpeg_next::codec::context::Context::from_parameters(input.parameters())?;
+            ffmpeg_next::codec::context::Context::from_parameters(input_stream.parameters())?;
         let mut decoder = context_decoder.decoder().video()?;
 
         let pix_fmt = match format {
@@ -53,13 +54,21 @@ impl Video<'_> {
             w,
             h,
             Flags::BILINEAR,
-        )?;*/
+        )?;
 
         Ok(Video {
-            input: context,
+            input,
             pixel_format: format,
-            desired_width: w,
-            desired_height: h,
+            decoder,
+            scaler,
+            video_index,
         })
     }
 }
+/*
+impl Iterator for Video<'_> {
+    type Item = ffmpeg_next::frame::video::Video;
+
+    fn next(&mut self) -> Option<Self::Item> {}
+}
+*/

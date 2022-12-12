@@ -1,19 +1,19 @@
 use std::ffi::CStr;
+pub use ffmpeg_next::util::version as ffmpeg_version;
 
-use libvmaf_sys::vmaf_version;
 
-pub fn VmafVersion() -> String {
-    let version = unsafe { CStr::from_ptr(vmaf_version()) };
+pub fn vmaf_version() -> String {
+    let version = unsafe { CStr::from_ptr(libvmaf_sys::vmaf_version()) };
     version.to_str().unwrap().to_string()
 }
 
 #[cfg(test)]
 mod test{
-    use super::VmafVersion;
+    use super::vmaf_version;
 
     #[test]
     fn version(){
-        let version = VmafVersion();
+        let version = vmaf_version();
         println!("{}",version);
     }
 }
