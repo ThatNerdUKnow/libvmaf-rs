@@ -70,19 +70,17 @@ impl Iterator for Video {
     type Item = ffmpeg_next::frame::Video;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let index = self.video_index;
         self.input
             .packets()
-            .filter(|(stream, _packet)| stream.index() == index)
+            .filter(|(stream, _packet)| stream.index() == self.video_index)
             .map(|(_stream, packet)| packet)
             .map(|packet| {
                 self.decoder.send_packet(&packet).unwrap();
                 let mut frame = ffmpeg_next::frame::Video::empty();
                 self.decoder.receive_frame(&mut frame).unwrap();
-
                 let mut scaled_frame = ffmpeg_next::frame::Video::empty();
                 self.scaler.run(&frame, &mut scaled_frame).unwrap();
-                scaled_frame.to_owned()
+                scaled_frame
             })
             .next()
     }
