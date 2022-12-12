@@ -2,21 +2,21 @@ use std::{cell::Cell, path::Path};
 
 use anyhow::anyhow;
 use ffmpeg_next::{
-    format::{input, Pixel},
+    format::{context::Input, input, Pixel},
     media::Type,
     software::scaling::{context::Context, flag::Flags},
-    Error,
+    Error, Stream,
 };
 use libvmaf_sys::VmafPixelFormat;
 
 pub struct Video {
-    decoder: Cell<ffmpeg_next::decoder::Video>,
-    stream_index: usize,
+    input: Input,
     pixel_format: VmafPixelFormat,
-    scaler: Cell<Context>,
+    desired_width: u32,
+    desired_height: u32,
 }
 
-impl Video {
+impl Video<'_> {
     pub fn new(
         path: &dyn AsRef<Path>,
         format: VmafPixelFormat,
@@ -25,7 +25,7 @@ impl Video {
     ) -> Result<Video, anyhow::Error> {
         let context = input(&path)?;
 
-        let input = context
+        /*let input:Stream = context
             .streams()
             .best(Type::Video)
             .ok_or(Error::StreamNotFound)?;
@@ -53,13 +53,13 @@ impl Video {
             w,
             h,
             Flags::BILINEAR,
-        )?;
+        )?;*/
 
         Ok(Video {
-            decoder: Cell::new(decoder),
-            stream_index: video_index,
+            input: context,
             pixel_format: format,
-            scaler: Cell::new(scaler),
+            desired_width: w,
+            desired_height: h,
         })
     }
 }
