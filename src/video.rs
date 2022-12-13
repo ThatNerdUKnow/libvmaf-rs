@@ -12,17 +12,12 @@ use libvmaf_sys::VmafPixelFormat;
 pub struct Video {
     input: Input,
     decoder: ffmpeg_next::codec::decoder::Video,
-    scaler: Context,
     video_index: usize,
-    pixel_format: VmafPixelFormat,
 }
 
 impl Video {
     pub fn new(
         path: &dyn AsRef<Path>,
-        format: VmafPixelFormat,
-        w: u32,
-        h: u32,
     ) -> Result<Video, anyhow::Error> {
 
         // To tell the truth I have no idea what this does
@@ -43,33 +38,9 @@ impl Video {
             ffmpeg_next::codec::context::Context::from_parameters(input_stream.parameters())?;
         let decoder = context_decoder.decoder().video()?;
 
-        // Select which pixel format to scale to
-        let pix_fmt = match format {
-            VmafPixelFormat::VMAF_PIX_FMT_UNKNOWN => return Err(anyhow!("Unknown Pixel format!")),
-            VmafPixelFormat::VMAF_PIX_FMT_YUV420P => Pixel::YUV420P,
-            VmafPixelFormat::VMAF_PIX_FMT_YUV422P => Pixel::YUV422P,
-            VmafPixelFormat::VMAF_PIX_FMT_YUV444P => Pixel::YUV444P,
-            VmafPixelFormat::VMAF_PIX_FMT_YUV400P => {
-                return Err(anyhow!("libavcodec does not support YUV400P"))
-            }
-        };
-
-        // Generate scaler
-        let scaler = Context::get(
-            decoder.format(),
-            decoder.width(),
-            decoder.height(),
-            pix_fmt,
-            w,
-            h,
-            Flags::BILINEAR,
-        )?;
-
         Ok(Video {
             input,
-            pixel_format: format,
             decoder,
-            scaler,
             video_index,
         })
     }
@@ -101,12 +72,7 @@ impl Iterator for Video {
             let mut frame = ffmpeg_next::frame::Video::empty();
             match self.decoder.receive_frame(&mut frame) {
                 Ok(_) => {
-
-                    // Allocate an empty frame for our scaler
-                    // then scale the frame and yield the final frame
-                    let mut scaled_frame = ffmpeg_next::frame::Video::empty();
-                    self.scaler.run(&frame, &mut scaled_frame).unwrap();
-                    return Some(scaled_frame);
+                    return Some(frame);
                 }
                 Err(_) => continue,
             }
@@ -129,9 +95,6 @@ mod test {
 
         let vid: Video = Video::new(
             &path,
-            libvmaf_sys::VmafPixelFormat::VMAF_PIX_FMT_YUV444P,
-            1920,
-            1080,
         )
         .unwrap();
 
