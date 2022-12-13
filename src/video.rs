@@ -24,19 +24,26 @@ impl Video {
         w: u32,
         h: u32,
     ) -> Result<Video, anyhow::Error> {
+
+        // To tell the truth I have no idea what this does
         ffmpeg_next::init()?;
+
+        // Create format context from path
         let input = input(&path)?;
 
+        // Get index of best video stream
         let input_stream: Stream = input
             .streams()
             .best(Type::Video)
             .ok_or(Error::StreamNotFound)?;
         let video_index = input_stream.index();
 
+        // Instantiate an appropriate decoder for the input stream
         let context_decoder =
             ffmpeg_next::codec::context::Context::from_parameters(input_stream.parameters())?;
         let decoder = context_decoder.decoder().video()?;
 
+        // Select which pixel format to scale to
         let pix_fmt = match format {
             VmafPixelFormat::VMAF_PIX_FMT_UNKNOWN => return Err(anyhow!("Unknown Pixel format!")),
             VmafPixelFormat::VMAF_PIX_FMT_YUV420P => Pixel::YUV420P,
@@ -47,6 +54,7 @@ impl Video {
             }
         };
 
+        // Generate scaler
         let scaler = Context::get(
             decoder.format(),
             decoder.width(),
@@ -71,6 +79,8 @@ impl Iterator for Video {
     type Item = ffmpeg_next::frame::Video;
 
     fn next(&mut self) -> Option<Self::Item> {
+
+        // This is an iterator of each packet in the selected video stream
         let packets = self
             .input
             .packets()
@@ -78,13 +88,22 @@ impl Iterator for Video {
             .map(|(_stream, packet)| packet);
 
         for packet in packets {
+
+            // Send each packet into our decoder
             match self.decoder.send_packet(&packet) {
                 Ok(_) => (),
                 Err(_) => continue,
             }
+
+            // Allocate an empty frame for our decoder to use
+            // the relationship of packet to frame is not 1:1, so 
+            // if an error throws, just continue
             let mut frame = ffmpeg_next::frame::Video::empty();
             match self.decoder.receive_frame(&mut frame) {
                 Ok(_) => {
+
+                    // Allocate an empty frame for our scaler
+                    // then scale the frame and yield the final frame
                     let mut scaled_frame = ffmpeg_next::frame::Video::empty();
                     self.scaler.run(&frame, &mut scaled_frame).unwrap();
                     return Some(scaled_frame);
@@ -92,18 +111,10 @@ impl Iterator for Video {
                 Err(_) => continue,
             }
         }
+
+        // Send eof to decoder so it can clean up
         self.decoder.send_eof().unwrap();
         None
-
-        /*.map(|packet| {
-            self.decoder.send_packet(&packet).unwrap();
-            let mut frame = ffmpeg_next::frame::Video::empty();
-            self.decoder.receive_frame(&mut frame).unwrap();
-            let mut scaled_frame = ffmpeg_next::frame::Video::empty();
-            self.scaler.run(&frame, &mut scaled_frame).unwrap();
-            scaled_frame
-        })
-        .next()*/
     }
 }
 
