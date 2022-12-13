@@ -1,13 +1,11 @@
 use std::path::Path;
 
-use anyhow::anyhow;
+
 use ffmpeg_next::{
-    format::{context::Input, input, Pixel},
+    format::{context::Input, input},
     media::Type,
-    software::scaling::{context::Context, flag::Flags},
-    Error, Stream,
+    Error as AVError, Stream,
 };
-use libvmaf_sys::VmafPixelFormat;
 
 pub struct Video {
     input: Input,
@@ -30,7 +28,7 @@ impl Video {
         let input_stream: Stream = input
             .streams()
             .best(Type::Video)
-            .ok_or(Error::StreamNotFound)?;
+            .ok_or(AVError::StreamNotFound)?;
         let video_index = input_stream.index();
 
         // Instantiate an appropriate decoder for the input stream
@@ -60,10 +58,8 @@ impl Iterator for Video {
 
         for packet in packets {
 
-            // Send each packet into our decoder
-            match self.decoder.send_packet(&packet) {
-                Ok(_) => (),
-                Err(_) => continue,
+            while self.decoder.send_packet(&packet) != Err(AVError::Other { errno: libc::EAGAIN }){
+                break;
             }
 
             // Allocate an empty frame for our decoder to use
