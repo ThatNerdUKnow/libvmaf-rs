@@ -1,15 +1,15 @@
 use std::path::Path;
-
-
 use ffmpeg_next::{
     format::{context::Input, input},
     media::Type,
     Error as AVError, Stream,
+    frame::Video as VideoFrame,
+    codec::decoder::Video as VideoDecoder
 };
 
 pub struct Video {
     input: Input,
-    decoder: ffmpeg_next::codec::decoder::Video,
+    decoder: VideoDecoder,
     video_index: usize,
 }
 
@@ -45,7 +45,7 @@ impl Video {
 }
 
 impl Iterator for Video {
-    type Item = ffmpeg_next::frame::Video;
+    type Item = VideoFrame;
 
     fn next(&mut self) -> Option<Self::Item> {
 
@@ -65,7 +65,7 @@ impl Iterator for Video {
             // Allocate an empty frame for our decoder to use
             // the relationship of packet to frame is not 1:1, so 
             // if an error throws, just continue
-            let mut frame = ffmpeg_next::frame::Video::empty();
+            let mut frame = VideoFrame::empty();
             match self.decoder.receive_frame(&mut frame) {
                 Ok(_) => {
                     return Some(frame);
