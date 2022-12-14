@@ -1,6 +1,6 @@
 use errno::Errno;
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
-use libc::{self, memcpy};
+use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
 use std::{
@@ -64,20 +64,20 @@ impl From<VideoFrame> for Picture {
         let src = unsafe { frame.as_ptr() };
         let dst = *picture;
         // Fill pixel data
-        let bytes_per_value = match bits_per_channel {
+        let bytes_per_value: usize = match bits_per_channel {
             0..=8 => 1,
             _ => 2,
         };
-        todo!();
+
         unsafe {
             for i in 0..3 {
-                let src_data = (*src).data[i];
-                let dst_data = (*dst).data[i];
+                let mut src_data: *const c_void = (*src).data[i] as *const c_void;
+                let mut dst_data = (*dst).data[i];
 
-                for j in 0..(*dst).h[i] {
-                    //memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i]);
-                    //src_data = src_data + (*src).linesize[i];
-                    //dst_data = dst_data + (*dst).stride[i];
+                for _ in 0..(*dst).h[i] {
+                    memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i] as usize);
+                    src_data = src_data.add((*src).linesize[i].try_into().unwrap());
+                    dst_data = dst_data.add((*dst).stride[i].try_into().unwrap());
                 }
             }
         }
