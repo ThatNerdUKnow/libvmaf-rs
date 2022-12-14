@@ -1,5 +1,6 @@
 use errno::Errno;
-use libc;
+use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
+use libc::{self, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
 use std::{
@@ -34,6 +35,54 @@ impl Picture {
             0 => Ok(Picture { vmaf_picture: pic }),
             _ => Err(Errno(-err)),
         }
+    }
+}
+
+impl From<VideoFrame> for Picture {
+    fn from(frame: VideoFrame) -> Self {
+        // Get pixel format
+        let format = match frame.format() {
+            Pixel::YUV420P | Pixel::YUV420P10LE | Pixel::YUV420P12LE | Pixel::YUV420P16LE => {
+                VmafPixelFormat::VMAF_PIX_FMT_YUV420P
+            }
+            Pixel::YUV422P | Pixel::YUV422P10LE | Pixel::YUV422P12LE | Pixel::YUV422P16LE => {
+                VmafPixelFormat::VMAF_PIX_FMT_YUV422P
+            }
+            Pixel::YUV444P | Pixel::YUV444P10LE | Pixel::YUV444P12LE | Pixel::YUV444P16LE => {
+                VmafPixelFormat::VMAF_PIX_FMT_YUV444P
+            }
+            _ => VmafPixelFormat::VMAF_PIX_FMT_UNKNOWN,
+        };
+
+        // Get bits per channel
+        // TODO actually figure out how many bits per channel we need
+        let bits_per_channel = 8;
+
+        let picture =
+            Picture::new(format, bits_per_channel, frame.width(), frame.height()).unwrap();
+
+        let src = unsafe { frame.as_ptr() };
+        let dst = *picture;
+        // Fill pixel data
+        let bytes_per_value = match bits_per_channel {
+            0..=8 => 1,
+            _ => 2,
+        };
+        todo!();
+        unsafe {
+            for i in 0..3 {
+                let src_data = (*src).data[i];
+                let dst_data = (*dst).data[i];
+
+                for j in 0..(*dst).h[i] {
+                    memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i]);
+                    src_data = src_data + (*src).linesize[i];
+                    dst_data = dst_data + (*dst).stride[i];
+                }
+            }
+        }
+
+        picture
     }
 }
 
