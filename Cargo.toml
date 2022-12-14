@@ -1,8 +1,8 @@
 [package]
 name = "libvmaf-rs"
-license = "MIT"
+license = "GPL-3.0-or-later"
 description = "(WIP) Ergonomic bindings for Netflix's libvmaf"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Brandon Piña"]
 repository = "https://github.com/ThatNerdUKnow/libvmaf-rs"
