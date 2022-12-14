@@ -1,5 +1,6 @@
 use errno::Errno;
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
+use ffmpeg_sys_next::av_get_bits_per_pixel;
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
@@ -56,7 +57,10 @@ impl From<VideoFrame> for Picture {
 
         // Get bits per channel
         // TODO actually figure out how many bits per channel we need
-        let bits_per_channel = 8;
+        let descriptor = frame.format().descriptor().unwrap();
+        let bits_per_channel: u32 = unsafe { av_get_bits_per_pixel(descriptor.as_ptr()) }
+            .try_into()
+            .unwrap();
 
         let picture =
             Picture::new(format, bits_per_channel, frame.width(), frame.height()).unwrap();

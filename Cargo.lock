@@ -189,6 +189,7 @@ dependencies = [
  "anyhow",
  "errno",
  "ffmpeg-next",
+ "ffmpeg-sys-next",
  "libc",
  "libvmaf-sys",
 ]
