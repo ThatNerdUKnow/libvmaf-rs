@@ -75,9 +75,9 @@ impl From<VideoFrame> for Picture {
                 let dst_data = (*dst).data[i];
 
                 for j in 0..(*dst).h[i] {
-                    memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i]);
-                    src_data = src_data + (*src).linesize[i];
-                    dst_data = dst_data + (*dst).stride[i];
+                    //memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i]);
+                    //src_data = src_data + (*src).linesize[i];
+                    //dst_data = dst_data + (*dst).stride[i];
                 }
             }
         }
