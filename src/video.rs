@@ -5,7 +5,7 @@ use ffmpeg_next::{
     media::Type,
     software::scaling,
     software::scaling::Context as Scaler,
-    Error as AVError, Stream,
+    Error as AVError, Stream, threading::Type as ThreadingType,
 };
 use std::path::Path;
 
@@ -34,7 +34,12 @@ impl Video {
         // Instantiate an appropriate decoder for the input stream
         let context_decoder =
             ffmpeg_next::codec::context::Context::from_parameters(input_stream.parameters())?;
-        let decoder = context_decoder.decoder().video()?;
+        let mut decoder = context_decoder.decoder().video()?;
+        let mut threading_config = decoder.threading();
+        threading_config.count = num_cpus::get();
+        threading_config.kind = ThreadingType::Frame;
+
+        decoder.set_threading(threading_config);
 
         let scaler = Scaler::get(
             decoder.format(),
@@ -97,6 +102,8 @@ impl Iterator for Video {
 
 #[cfg(test)]
 mod test {
+    use crate::picture::Picture;
+
     use super::Video;
     use std::path::Path;
 
@@ -108,6 +115,7 @@ mod test {
 
         for _frame in vid.into_iter() {
             // Do nothing
+            let _picture:Picture = _frame.try_into().unwrap();
         }
     }
 }

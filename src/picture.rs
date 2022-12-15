@@ -1,6 +1,6 @@
+use anyhow::anyhow;
 use errno::Errno;
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
-use ffmpeg_sys_next::av_get_bits_per_pixel;
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
@@ -39,8 +39,10 @@ impl Picture {
     }
 }
 
-impl From<VideoFrame> for Picture {
-    fn from(frame: VideoFrame) -> Self {
+impl TryFrom<VideoFrame> for Picture {
+    type Error = anyhow::Error;
+
+    fn try_from(frame: VideoFrame) -> Result<Self, Self::Error> {
         // Get pixel format
         let format = match frame.format() {
             Pixel::YUV420P | Pixel::YUV420P10LE | Pixel::YUV420P12LE | Pixel::YUV420P16LE => {
@@ -56,14 +58,15 @@ impl From<VideoFrame> for Picture {
         };
 
         // Get bits per channel
-        // TODO actually figure out how many bits per channel we need
-        let descriptor = frame.format().descriptor().unwrap();
-        let bits_per_channel: u32 = unsafe { av_get_bits_per_pixel(descriptor.as_ptr()) }
-            .try_into()
-            .unwrap();
+        let bits_per_channel: u32 = match frame.format() {
+            Pixel::YUV420P | Pixel::YUV422P | Pixel::YUV444P => 8,
+            Pixel::YUV420P10LE | Pixel::YUV422P10LE | Pixel::YUV444P10LE => 10,
+            Pixel::YUV420P12LE | Pixel::YUV422P12LE | Pixel::YUV444P12LE => 12,
+            Pixel::YUV420P16LE | Pixel::YUV422P16LE | Pixel::YUV444P16LE => 16,
+            _ => return Err(anyhow!("Invalid pixel format: {:?}", frame.format())),
+        };
 
-        let picture =
-            Picture::new(format, bits_per_channel, frame.width(), frame.height()).unwrap();
+        let picture = Picture::new(format, bits_per_channel, frame.width(), frame.height())?;
 
         let src = unsafe { frame.as_ptr() };
         let dst = *picture;
@@ -80,13 +83,13 @@ impl From<VideoFrame> for Picture {
 
                 for _ in 0..(*dst).h[i] {
                     memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i] as usize);
-                    src_data = src_data.add((*src).linesize[i].try_into().unwrap());
-                    dst_data = dst_data.add((*dst).stride[i].try_into().unwrap());
+                    src_data = src_data.add((*src).linesize[i].try_into()?);
+                    dst_data = dst_data.add((*dst).stride[i].try_into()?);
                 }
             }
         }
 
-        picture
+        Ok(picture)
     }
 }
 

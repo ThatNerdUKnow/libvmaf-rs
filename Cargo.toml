@@ -16,6 +16,8 @@ repository = "https://github.com/ThatNerdUKnow/libvmaf-rs"
 ffmpeg-next = "5.1.1"
 anyhow = "1.0.66"
 ffmpeg-sys-next = "5.1.1"
+num_cpus = "1.14.0"
+thiserror = "1.0.37"
 
 [profile.release]
 lto = true
