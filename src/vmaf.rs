@@ -3,8 +3,8 @@ use errno::Errno;
 use ffmpeg_next::frame;
 pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
-    vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, VmafConfiguration, VmafContext,
-    VmafPicture,
+    vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
+    VmafConfiguration, VmafContext, VmafPicture,
 };
 use std::{
     ops::{Deref, DerefMut},
@@ -57,11 +57,14 @@ impl Vmaf {
     /// for reference. If you don't need a custom type for this, just use `Video`; given a path and a resolution it will
     /// decode and scale the video you want to load for you
     pub fn get_vmaf_scores(
-        self,
+        mut self,
         reference: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
         distorted: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
         model: Model,
     ) -> Result<Vec<f64>, anyhow::Error> {
+
+        self.use_features_from_model(&model)?;
+
         let framepair = reference
             .zip(distorted)
             .map(|(reference, distorted)| {
@@ -89,14 +92,14 @@ impl Vmaf {
             })
             .collect::<Vec<anyhow::Result<usize>>>();
 
-        self.finish_reading_pictures();
+        self.finish_reading_pictures()?;
 
         let mut scores: Vec<f64> = vec![];
 
         for pairindex in framepair {
             match pairindex {
                 Ok(index) => {
-                    let score = self.get_score_at_index(model, index.try_into().unwrap())?;
+                    let score = self.get_score_at_index(&model, index.try_into().unwrap())?;
                     scores.push(score);
                 }
                 Err(e) => bail!(e),
@@ -106,6 +109,14 @@ impl Vmaf {
         Ok(scores)
     }
 
+    fn use_features_from_model(&mut self, model: &Model) -> Result<(), Errno> {
+        let err = unsafe { vmaf_use_features_from_model(self.0, **model) };
+
+        match err {
+            0 => Ok(()),
+            _ => Err(Errno(-err)),
+        }
+    }
     fn read_pictures(
         &mut self,
         reference: Picture,
@@ -130,9 +141,9 @@ impl Vmaf {
         }
     }
 
-    fn get_score_at_index(&mut self, model: Model, index: u32) -> Result<f64, Errno> {
+    fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, Errno> {
         let mut score: *mut f64 = ptr::null_mut();
-        let err = unsafe { vmaf_score_at_index(self.0, *model, score, index) };
+        let err = unsafe { vmaf_score_at_index(self.0, **model, score, index) };
 
         match err {
             0 => unsafe { Ok(*score) },
