@@ -1,9 +1,21 @@
-use std::ops::{Deref, DerefMut};
-
+use anyhow::{bail, Context, Error};
 use errno::Errno;
+use ffmpeg_next::frame;
 pub use libvmaf_sys::VmafLogLevel;
-use libvmaf_sys::{vmaf_close, vmaf_init, VmafConfiguration, VmafContext};
-struct Vmaf(*mut VmafContext);
+use libvmaf_sys::{
+    vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, VmafConfiguration, VmafContext,
+    VmafPicture,
+};
+use std::{
+    ops::{Deref, DerefMut},
+    ptr::{self, null},
+};
+
+use crate::{
+    model::Model,
+    picture::{self, Picture},
+};
+pub struct Vmaf(*mut VmafContext);
 
 impl Vmaf {
     pub fn new(
@@ -38,6 +50,95 @@ impl Vmaf {
             _ => Err(Errno(-err)),
         }
     }
+
+    /// Use this function to get a vector of vmaf scores.
+    /// To implement `TryInto` for Picture, you may dereference `Picture` to get a `*mut VmafPicture`.
+    /// Fill the data property of the VmafPicture raw pointer with pixel data. View `impl TryFrom<VideoFrame> for Picture`
+    /// for reference. If you don't need a custom type for this, just use `Video`; given a path and a resolution it will
+    /// decode and scale the video you want to load for you
+    pub fn get_vmaf_scores(
+        self,
+        reference: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
+        distorted: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
+        model: Model,
+    ) -> Result<Vec<f64>, anyhow::Error> {
+        let framepair = reference
+            .zip(distorted)
+            .map(|(reference, distorted)| {
+                let reference_pic = TryInto::<Picture>::try_into(reference);
+                let distorted_pic = TryInto::<Picture>::try_into(distorted);
+
+                match (reference_pic, distorted_pic) {
+                    (Ok(reference), Ok(distorted)) => Ok((reference, distorted)),
+                    (Ok(_), Err(distortederr)) => Err(distortederr),
+                    (Err(referenceerr), Ok(_)) => Err(referenceerr),
+                    (Err(referr), Err(disterr)) => Err(referr).context(format!("{disterr}")),
+                }
+            })
+            .enumerate()
+            .map(|(index, result)| -> anyhow::Result<usize> {
+                match result {
+                    Ok((reference, distorted)) => {
+                        match self.read_pictures(reference, distorted, index.try_into().unwrap()) {
+                            Ok(()) => Ok(index),
+                            Err(e) => Err(Error::new(e)),
+                        }
+                    }
+                    Err(error) => Err(error),
+                }
+            })
+            .collect::<Vec<anyhow::Result<usize>>>();
+
+        self.finish_reading_pictures();
+
+        let mut scores: Vec<f64> = vec![];
+
+        for pairindex in framepair {
+            match pairindex {
+                Ok(index) => {
+                    let score = self.get_score_at_index(model, index.try_into().unwrap())?;
+                    scores.push(score);
+                }
+                Err(e) => bail!(e),
+            }
+        }
+
+        Ok(scores)
+    }
+
+    fn read_pictures(
+        &mut self,
+        reference: Picture,
+        distorted: Picture,
+        index: u32,
+    ) -> Result<(), Errno> {
+        let err = unsafe { vmaf_read_pictures(self.0, *reference, *distorted, index) };
+
+        match err {
+            0 => Ok(()),
+            _ => Err(Errno(-err)),
+        }
+    }
+
+    fn finish_reading_pictures(&mut self) -> Result<(), Errno> {
+        let null: *mut VmafPicture = ptr::null_mut();
+        let err = unsafe { vmaf_read_pictures(self.0, null.clone(), null.clone(), 0) };
+
+        match err {
+            0 => Ok(()),
+            _ => Err(Errno(-err)),
+        }
+    }
+
+    fn get_score_at_index(&mut self, model: Model, index: u32) -> Result<f64, Errno> {
+        let mut score: *mut f64 = ptr::null_mut();
+        let err = unsafe { vmaf_score_at_index(self.0, *model, score, index) };
+
+        match err {
+            0 => unsafe { Ok(*score) },
+            _ => Err(Errno(-err)),
+        }
+    }
 }
 
 impl Drop for Vmaf {
@@ -68,6 +169,8 @@ impl DerefMut for Vmaf {
 }
 #[cfg(test)]
 mod test {
+    use crate::video::Video;
+
     use super::Vmaf;
     use libvmaf_sys::VmafLogLevel;
 
@@ -75,7 +178,6 @@ mod test {
     fn construct() {
         let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, 1, 0, 0)
             .expect("Recieved error code from constructor");
-
         drop(_vmaf)
     }
 }
