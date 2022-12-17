@@ -1,6 +1,5 @@
 use anyhow::{bail, Context, Error};
 use errno::Errno;
-use ffmpeg_next::frame;
 pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
@@ -8,13 +7,10 @@ use libvmaf_sys::{
 };
 use std::{
     ops::{Deref, DerefMut},
-    ptr::{self, null},
+    ptr,
 };
 
-use crate::{
-    model::Model,
-    picture::{self, Picture},
-};
+use crate::{model::Model, picture::Picture};
 pub struct Vmaf(*mut VmafContext);
 
 impl Vmaf {
@@ -62,7 +58,6 @@ impl Vmaf {
         distorted: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
         model: Model,
     ) -> Result<Vec<f64>, anyhow::Error> {
-
         self.use_features_from_model(&model)?;
 
         let framepair = reference
