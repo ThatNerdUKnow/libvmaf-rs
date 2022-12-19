@@ -108,7 +108,7 @@ impl DerefMut for Picture {
         &mut self.vmaf_picture
     }
 }
-
+/*
 impl Drop for Picture {
     fn drop(&mut self) {
         // Allow FFI code to free its memory
@@ -145,7 +145,7 @@ impl Drop for Picture {
         }
     }
 }
-
+*/
 #[cfg(test)]
 mod test {
     use libvmaf_sys::VmafPixelFormat;

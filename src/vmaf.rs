@@ -13,6 +13,11 @@ use std::{
 use crate::{model::Model, picture::Picture};
 pub struct Vmaf(*mut VmafContext);
 
+enum VmafError {
+    ReadFrame,
+    ClearFrame,
+}
+
 impl Vmaf {
     pub fn new(
         log_level: VmafLogLevel,
@@ -175,15 +180,31 @@ impl DerefMut for Vmaf {
 }
 #[cfg(test)]
 mod test {
-    use crate::video::Video;
+    use crate::{video::Video, model::Model};
 
     use super::Vmaf;
-    use libvmaf_sys::VmafLogLevel;
+    use libvmaf_sys::{VmafLogLevel, VmafModelConfig, VmafModelFlags};
 
     #[test]
     fn construct() {
         let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, 1, 0, 0)
             .expect("Recieved error code from constructor");
         drop(_vmaf)
+    }
+
+    #[test]
+    fn get_vmaf_scores() {
+        let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, 1, 0, 0)
+            .expect("Recieved error code from constructor");
+
+        let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
+        let distorted: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
+        let config: VmafModelConfig = VmafModelConfig {
+            name: std::ptr::null(),
+            flags: VmafModelFlags::VMAF_MODEL_FLAGS_DEFAULT as u64,
+        };
+        let _model: Model = Model::new(config, "vmaf_v0.6.1".to_string()).unwrap();
+
+        _vmaf.get_vmaf_scores(reference, distorted, _model).unwrap();
     }
 }
