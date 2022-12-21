@@ -17,17 +17,17 @@ pub struct Vmaf(*mut VmafContext);
 
 #[derive(Error, Debug)]
 pub enum VmafError {
-    #[error("Couldn't read VmafPicture")]
+    #[error("Couldn't read VmafPicture {0:?}")]
     ReadFrame(Errno),
-    #[error("Couldn't clear feature extractor buffers")]
+    #[error("Couldn't clear feature extractor buffers {0:?}")]
     ClearFrame(Errno),
-    #[error("Couldn't get score for frame #{0}")]
+    #[error("Couldn't get score for frame #{0} {1:?}")]
     GetScore(u32, Errno),
 
-    #[error("Couldn't construct a vmafcontext")]
+    #[error("Couldn't construct a vmafcontext {0:?}")]
     Construct(Errno),
 
-    #[error("Couldn't use features from model")]
+    #[error("Couldn't use features from model {0:?}")]
     Feature(Errno),
 
     #[error("Couldn't run VMAF")]
@@ -158,11 +158,12 @@ impl Vmaf {
     }
 
     fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, VmafError> {
-        let mut score: *mut f64 = ptr::null_mut();
-        let err = unsafe { vmaf_score_at_index(self.0, **model, score, index) };
+        let mut score: f64 = 0.0;
+
+        let err = unsafe { vmaf_score_at_index(self.0, **model, &mut score as *mut f64, index) };
 
         match err {
-            0 => unsafe { Ok(*score) },
+            0 => Ok(score),
             _ => Err(Report::new(VmafError::GetScore(index, Errno(-err)))),
         }
     }
@@ -210,7 +211,7 @@ mod test {
 
     #[test]
     fn get_vmaf_scores() {
-        let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, 1, 0, 0)
+        let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, num_cpus::get().try_into().unwrap(), 0, 0)
             .expect("Recieved error code from constructor");
 
         let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
