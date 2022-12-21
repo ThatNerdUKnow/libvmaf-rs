@@ -1,5 +1,6 @@
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error};
 use errno::Errno;
+use error_stack::{Report, Result, IntoReportCompat, ResultExt, bail};
 pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
@@ -9,13 +10,28 @@ use std::{
     ops::{Deref, DerefMut},
     ptr,
 };
+use thiserror::Error;
 
 use crate::{model::Model, picture::Picture};
 pub struct Vmaf(*mut VmafContext);
 
-enum VmafError {
-    ReadFrame,
-    ClearFrame,
+#[derive(Error, Debug)]
+pub enum VmafError {
+    #[error("Couldn't read VmafPicture {0:?}")]
+    ReadFrame(Errno),
+    #[error("Couldn't clear feature extractor buffers {0:?}")]
+    ClearFrame(Errno),
+    #[error("Couldn't get score for frame #{0} {1:?}")]
+    GetScore(u32, Errno),
+
+    #[error("Couldn't construct a vmafcontext {0:?}")]
+    Construct(Errno),
+
+    #[error("Couldn't use features from model {0:?}")]
+    Feature(Errno),
+
+    #[error("Couldn't run VMAF")]
+    Other
 }
 
 impl Vmaf {
@@ -24,7 +40,7 @@ impl Vmaf {
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
-    ) -> Result<Vmaf, Errno> {
+    ) -> Result<Vmaf, VmafError> {
         // Build configuration type
         let config = VmafConfiguration {
             log_level,
@@ -48,7 +64,7 @@ impl Vmaf {
         // Return an error if vmaf_init returned an error code
         match err {
             0 => Ok(vmaf),
-            _ => Err(Errno(-err)),
+            _ => Err(Report::new(VmafError::Construct(Errno(-err)))),
         }
     }
 
@@ -62,7 +78,7 @@ impl Vmaf {
         reference: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
         distorted: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
         model: Model,
-    ) -> Result<Vec<f64>, anyhow::Error> {
+    ) -> Result<Vec<f64>, VmafError> {
         self.use_features_from_model(&model)?;
 
         let framepair = reference
@@ -79,18 +95,18 @@ impl Vmaf {
                 }
             })
             .enumerate()
-            .map(|(index, result)| -> anyhow::Result<usize> {
+            .map(|(index, result)| {
                 match result {
                     Ok((reference, distorted)) => {
                         match self.read_pictures(reference, distorted, index.try_into().unwrap()) {
                             Ok(()) => Ok(index),
-                            Err(e) => Err(Error::new(e)),
+                            Err(e) => Err(e).change_context(VmafError::Other),
                         }
                     }
-                    Err(error) => Err(error),
+                    Err(error) => Err(error).into_report().change_context(VmafError::Other),
                 }
             })
-            .collect::<Vec<anyhow::Result<usize>>>();
+            .collect::<Vec<Result<usize,VmafError>>>();
 
         //self.finish_reading_pictures()?;
 
@@ -109,12 +125,12 @@ impl Vmaf {
         Ok(scores)
     }
 
-    fn use_features_from_model(&mut self, model: &Model) -> Result<(), Errno> {
+    fn use_features_from_model(&mut self, model: &Model) -> Result<(), VmafError> {
         let err = unsafe { vmaf_use_features_from_model(self.0, **model) };
 
         match err {
             0 => Ok(()),
-            _ => Err(Errno(-err)),
+            _ => Err(Report::new(VmafError::Feature(Errno(-err)))),
         }
     }
     fn read_pictures(
@@ -122,32 +138,33 @@ impl Vmaf {
         reference: Picture,
         distorted: Picture,
         index: u32,
-    ) -> Result<(), Errno> {
+    ) -> Result<(), VmafError> {
         let err = unsafe { vmaf_read_pictures(self.0, *reference, *distorted, index) };
 
         match err {
             0 => Ok(()),
-            _ => Err(Errno(-err)),
+            _ => Err(Report::new(VmafError::ReadFrame(Errno(-err)))),
         }
     }
 
-    fn finish_reading_pictures(&mut self) -> Result<(), Errno> {
+    fn finish_reading_pictures(&mut self) -> Result<(), VmafError> {
         let null: *mut VmafPicture = ptr::null_mut();
         let err = unsafe { vmaf_read_pictures(self.0, null.clone(), null.clone(), 0) };
 
         match err {
             0 => Ok(()),
-            _ => Err(Errno(-err)),
+            _ => Err(Report::new(VmafError::ClearFrame(Errno(-err)))),
         }
     }
 
-    fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, Errno> {
-        let mut score: *mut f64 = ptr::null_mut();
-        let err = unsafe { vmaf_score_at_index(self.0, **model, score, index) };
+    fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, VmafError> {
+        let mut score: f64 = 0.0;
+
+        let err = unsafe { vmaf_score_at_index(self.0, **model, &mut score as *mut f64, index) };
 
         match err {
-            0 => unsafe { Ok(*score) },
-            _ => Err(Errno(-err)),
+            0 => Ok(score),
+            _ => Err(Report::new(VmafError::GetScore(index, Errno(-err)))),
         }
     }
 }
@@ -180,7 +197,7 @@ impl DerefMut for Vmaf {
 }
 #[cfg(test)]
 mod test {
-    use crate::{video::Video, model::Model};
+    use crate::{model::Model, video::Video};
 
     use super::Vmaf;
     use libvmaf_sys::{VmafLogLevel, VmafModelConfig, VmafModelFlags};
