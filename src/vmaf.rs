@@ -92,7 +92,7 @@ impl Vmaf {
             })
             .collect::<Vec<anyhow::Result<usize>>>();
 
-        self.finish_reading_pictures()?;
+        //self.finish_reading_pictures()?;
 
         let mut scores: Vec<f64> = vec![];
 
@@ -194,7 +194,7 @@ mod test {
 
     #[test]
     fn get_vmaf_scores() {
-        let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, 1, 0, 0)
+        let _vmaf = Vmaf::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, num_cpus::get().try_into().unwrap(), 0, 0)
             .expect("Recieved error code from constructor");
 
         let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
