@@ -108,7 +108,7 @@ impl DerefMut for Picture {
         &mut self.vmaf_picture
     }
 }
-/*
+
 impl Drop for Picture {
     fn drop(&mut self) {
         // Allow FFI code to free its memory
@@ -133,19 +133,9 @@ impl Drop for Picture {
                 panic!("Got Error {:?} When dropping Picture", Errno(-err));
             };
         }
-
-        // Our raw pointer to vmaf_picture should still be valid
-        assert!(!self.vmaf_picture.is_null());
-
-        // Deallocate data pointed to by vmaf_picture and nullify vmaf_picture
-        unsafe {
-            libc::free(self.vmaf_picture as *mut libc::c_void);
-            self.vmaf_picture = ptr::null_mut();
-            assert!(self.vmaf_picture.is_null());
-        }
     }
 }
-*/
+
 #[cfg(test)]
 mod test {
     use libvmaf_sys::VmafPixelFormat;
