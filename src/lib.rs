@@ -3,3 +3,4 @@ pub mod vmaf;
 pub mod model;
 pub mod utils;
 pub mod video;
+pub mod error;

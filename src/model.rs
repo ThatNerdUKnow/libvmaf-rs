@@ -3,24 +3,36 @@ pub use libvmaf_sys::VmafModelConfig;
 use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags};
 use std::{
     ffi::{c_char, CString},
+    fmt::Display,
     ops::{Deref, DerefMut},
 };
 
-pub struct Model(*mut VmafModel);
+#[derive(Debug)]
+pub struct Model(*mut VmafModel, String);
 
 impl Model {
     pub fn new(config: VmafModelConfig, version: String) -> Result<Model, Errno> {
         let mut ptr: *mut VmafModel = std::ptr::null_mut();
         let mut config = config.clone();
 
-        let version_cstring: CString = CString::new(version).unwrap();
+        let version_cstring: CString = CString::new(version.clone()).unwrap();
         let version_ptr: *const c_char = version_cstring.as_ptr() as *const c_char;
         let err = unsafe { vmaf_model_load(&mut ptr, &mut config, version_ptr) };
 
         match err {
-            0 => Ok(Model(ptr)),
+            0 => Ok(Model(ptr, version)),
             _ => Err(Errno(-err)),
         }
+    }
+
+    pub fn version(&self) -> String {
+        self.1.clone()
+    }
+}
+
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.1)
     }
 }
 
