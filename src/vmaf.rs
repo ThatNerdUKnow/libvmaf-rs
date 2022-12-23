@@ -1,11 +1,11 @@
 use crate::error::VMAFError;
-use anyhow::{Context, Error};
+use anyhow::Context;
 use errno::Errno;
-use error_stack::{bail, IntoReportCompat, Report, Result, ResultExt};
+use error_stack::{bail, IntoReportCompat, Result, ResultExt};
 pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
-    VmafConfiguration, VmafContext, VmafModel, VmafPicture,
+    VmafConfiguration, VmafContext, VmafPicture,
 };
 use std::{
     ops::{Deref, DerefMut},
@@ -20,17 +20,14 @@ pub struct Vmaf(*mut VmafContext);
 pub enum VmafContextError {
     #[error("Couldn't read VmafPicture {0:?}")]
     ReadFrame(Errno),
-    #[error("Couldn't clear feature extractor buffers {0:?}")]
-    ClearFrame(Errno),
+    #[error("Couldn't clear feature extractor buffers")]
+    ClearFrame,
     #[error("Couldn't get score for frame #{0}")]
     GetScore(u32),
-
-    #[error("Couldn't construct a vmafcontext {0:?}")]
-    Construct(Errno),
-
+    #[error("Couldn't construct a vmafcontext")]
+    Construct,
     #[error("Couldn't use features from model {0}")]
     Feature(String),
-
     #[error("Couldn't run VMAF")]
     Other,
 }
@@ -63,10 +60,9 @@ impl Vmaf {
         assert!(!(*vmaf).is_null());
 
         // Return an error if vmaf_init returned an error code
-        match err {
-            0 => Ok(vmaf),
-            _ => Err(Report::new(VmafContextError::Construct(Errno(-err)))),
-        }
+        VMAFError::check_err(err).change_context(VmafContextError::Construct)?;
+
+        Ok(vmaf)
     }
 
     /// Use this function to get a vector of vmaf scores.
@@ -110,7 +106,8 @@ impl Vmaf {
             })
             .collect::<Vec<Result<usize, VmafContextError>>>();
 
-        //self.finish_reading_pictures()?;
+        self.finish_reading_pictures()
+            .change_context(VmafContextError::ClearFrame)?;
 
         let mut scores: Vec<f64> = vec![];
 
@@ -168,10 +165,9 @@ impl Drop for Vmaf {
         unsafe {
             assert!(!self.0.is_null());
             let err = vmaf_close(self.0);
-            self.0 = std::ptr::null_mut();
-            if err < 0 {
-                panic!("Got Error: {:?} when dropping Vmaf Context", Errno(-err));
-            };
+            VMAFError::check_err(err)
+                .attach_printable("Encountered error when dropping VmafContext")
+                .unwrap();
         }
     }
 }
