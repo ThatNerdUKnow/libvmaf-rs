@@ -1,17 +1,28 @@
 use anyhow::anyhow;
 use errno::Errno;
+use error_stack::{Report, Result, ResultExt};
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
-use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
+use libvmaf_sys::{vmaf_picture_alloc, VmafPicture};
 use std::{
     ffi::c_uint,
     mem,
     ops::{Deref, DerefMut},
-    ptr,
 };
+use thiserror::Error;
+
+use crate::error::VMAFError;
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
+}
+
+#[derive(Error, Debug)]
+pub enum PictureError {
+    #[error("Encountered a problem when trying to construct Picture")]
+    Construct,
+    #[error("Encountered a problem when trying to decode video")]
+    Decode,
 }
 
 impl Picture {
@@ -20,7 +31,7 @@ impl Picture {
         bits_per_channel: c_uint,
         width: c_uint,
         height: c_uint,
-    ) -> Result<Picture, Errno> {
+    ) -> Result<Picture, PictureError> {
         // Allocate memory for VmafPicture
         let pic: *mut VmafPicture =
             unsafe { libc::malloc(mem::size_of::<VmafPicture>()) as *mut VmafPicture };
@@ -32,17 +43,16 @@ impl Picture {
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bits_per_channel, width, height) };
 
         // Return an error if vmaf_picture_alloc returned an error code
-        match err {
-            0 => Ok(Picture { vmaf_picture: pic }),
-            _ => Err(Errno(-err)),
-        }
+        VMAFError::check_err(err).change_context(PictureError::Construct)?;
+
+        Ok(Picture { vmaf_picture: pic })
     }
 }
 
 impl TryFrom<VideoFrame> for Picture {
-    type Error = anyhow::Error;
+    type Error = Report<PictureError>;
 
-    fn try_from(frame: VideoFrame) -> Result<Self, Self::Error> {
+    fn try_from(frame: VideoFrame) -> core::result::Result<Self, Self::Error> {
         // Get pixel format
         let format = match frame.format() {
             Pixel::YUV420P | Pixel::YUV420P10LE | Pixel::YUV420P12LE | Pixel::YUV420P16LE => {
@@ -63,7 +73,10 @@ impl TryFrom<VideoFrame> for Picture {
             Pixel::YUV420P10LE | Pixel::YUV422P10LE | Pixel::YUV444P10LE => 10,
             Pixel::YUV420P12LE | Pixel::YUV422P12LE | Pixel::YUV444P12LE => 12,
             Pixel::YUV420P16LE | Pixel::YUV422P16LE | Pixel::YUV444P16LE => 16,
-            _ => return Err(anyhow!("Invalid pixel format: {:?}", frame.format())),
+            _ => {
+                return Err(Report::new(PictureError::Decode)
+                    .attach_printable(format!("{:?}", frame.format())))
+            }
         };
 
         let picture = Picture::new(format, bits_per_channel, frame.width(), frame.height())?;
@@ -76,6 +89,12 @@ impl TryFrom<VideoFrame> for Picture {
             _ => 2,
         };
 
+        let conversionHandler = |e| {
+            Err(Report::new(e)
+                .change_context(PictureError::Decode)
+                .attach_printable("When copying pixel data"))
+        };
+
         unsafe {
             for i in 0..3 {
                 let mut src_data: *const c_void = (*src).data[i] as *const c_void;
@@ -83,8 +102,19 @@ impl TryFrom<VideoFrame> for Picture {
 
                 for _ in 0..(*dst).h[i] {
                     memcpy(dst_data, src_data, bytes_per_value * (*dst).w[i] as usize);
-                    src_data = src_data.add((*src).linesize[i].try_into()?);
-                    dst_data = dst_data.add((*dst).stride[i].try_into()?);
+
+                    let linesize_src = match (*src).linesize[i].try_into() {
+                        Ok(n) => n,
+                        Err(e) => return conversionHandler(e).attach_printable("src"),
+                    };
+
+                    let linesize_dst = match (*dst).stride[i].try_into() {
+                        Ok(n) => n,
+                        Err(e) => return conversionHandler(e).attach_printable("dst"),
+                    };
+
+                    src_data = src_data.add(linesize_src);
+                    dst_data = dst_data.add(linesize_dst);
                 }
             }
         }

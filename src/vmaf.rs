@@ -1,7 +1,7 @@
-use crate::error::VMAFError;
+use crate::{error::VMAFError, picture::PictureError};
 use anyhow::Context;
 use errno::Errno;
-use error_stack::{bail, IntoReportCompat, Result, ResultExt};
+use error_stack::{bail, IntoReportCompat, Report, Result, ResultExt};
 pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
@@ -72,8 +72,8 @@ impl Vmaf {
     /// decode and scale the video you want to load for you
     pub fn get_vmaf_scores(
         mut self,
-        reference: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
-        distorted: impl Iterator<Item = impl TryInto<Picture, Error = anyhow::Error>>,
+        reference: impl Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+        distorted: impl Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
         model: Model,
     ) -> Result<Vec<f64>, VmafContextError> {
         self.use_features_from_model(&model)
@@ -81,17 +81,19 @@ impl Vmaf {
 
         let framepair = reference
             .zip(distorted)
-            .map(|(reference, distorted)| {
-                let reference_pic = TryInto::<Picture>::try_into(reference);
-                let distorted_pic = TryInto::<Picture>::try_into(distorted);
+            .map(
+                |(reference, distorted)| -> Result<(Picture, Picture), PictureError> {
+                    let reference_pic = TryInto::<Picture>::try_into(reference);
+                    let distorted_pic = TryInto::<Picture>::try_into(distorted);
 
-                match (reference_pic, distorted_pic) {
-                    (Ok(reference), Ok(distorted)) => Ok((reference, distorted)),
-                    (Ok(_), Err(distortederr)) => Err(distortederr),
-                    (Err(referenceerr), Ok(_)) => Err(referenceerr),
-                    (Err(referr), Err(disterr)) => Err(referr).context(format!("{disterr}")),
-                }
-            })
+                    match (reference_pic, distorted_pic) {
+                        (Ok(reference), Ok(distorted)) => Ok((reference, distorted)),
+                        (Ok(_), Err(distortederr)) => Err(distortederr),
+                        (Err(referenceerr), Ok(_)) => Err(referenceerr),
+                        (Err(referr), Err(_)) => Err(referr),
+                    }
+                },
+            )
             .enumerate()
             .map(|(index, result)| match result {
                 Ok((reference, distorted)) => {
@@ -100,9 +102,7 @@ impl Vmaf {
                         Err(e) => Err(e).change_context(VmafContextError::Other),
                     }
                 }
-                Err(error) => Err(error)
-                    .into_report()
-                    .change_context(VmafContextError::Other),
+                Err(error) => Err(error.change_context(VmafContextError::Other)),
             })
             .collect::<Vec<Result<usize, VmafContextError>>>();
 
