@@ -1,5 +1,3 @@
-use anyhow::anyhow;
-use errno::Errno;
 use error_stack::{Report, Result, ResultExt};
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};

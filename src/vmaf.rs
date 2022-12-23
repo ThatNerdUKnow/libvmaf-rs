@@ -1,5 +1,4 @@
 use crate::{error::VMAFError, picture::PictureError};
-use anyhow::Context;
 use errno::Errno;
 use error_stack::{bail, IntoReportCompat, Report, Result, ResultExt};
 pub use libvmaf_sys::VmafLogLevel;

@@ -14,7 +14,6 @@ repository = "https://github.com/ThatNerdUKnow/libvmaf-rs"
 "errno" = "0.2.8"
 "libc" = "0.2.137"
 ffmpeg-next = { version = "5.1.1", features = ["build"] }
-anyhow = "1.0.66"
 num_cpus = "1.14.0"
 thiserror = "1.0.37"
 error-stack = { version = "0.2.4", features = ["anyhow"] }

@@ -1,13 +1,20 @@
+use error_stack::{IntoReport, Result, ResultExt};
 use ffmpeg_next::{
+    codec::context::Context as Codec,
     codec::decoder::Video as VideoDecoder,
     format::{context::Input, input},
     frame::Video as VideoFrame,
     media::Type,
     software::scaling,
     software::scaling::Context as Scaler,
-    Error as AVError, Stream, threading::Type as ThreadingType,
+    threading::Type as ThreadingType,
+    Error as AVError, Stream,
 };
-use std::path::Path;
+use std::{
+    fmt::Debug,
+    path::{Path, PathBuf},
+};
+use thiserror::Error;
 
 pub struct Video {
     input: Input,
@@ -16,25 +23,45 @@ pub struct Video {
     scaler: Scaler,
 }
 
+#[derive(Error, Debug)]
+pub enum VideoError {
+    #[error("Encountered an error when creating video context {0}")]
+    Construct(PathBuf),
+}
+
 impl Video {
-    pub fn new(path: &dyn AsRef<Path>, w: u32, h: u32) -> Result<Video, anyhow::Error> {
+    pub fn new(path: &dyn AsRef<Path>, w: u32, h: u32) -> Result<Video, VideoError> {
         // To tell the truth I have no idea what this does
-        ffmpeg_next::init()?;
+        ffmpeg_next::init()
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
         // Create format context from path
-        let input = input(&path)?;
+        let input = input(&path)
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
         // Get index of best video stream
         let input_stream: Stream = input
             .streams()
             .best(Type::Video)
-            .ok_or(AVError::StreamNotFound)?;
+            .ok_or(AVError::StreamNotFound)
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+
         let video_index = input_stream.index();
 
         // Instantiate an appropriate decoder for the input stream
-        let context_decoder =
-            ffmpeg_next::codec::context::Context::from_parameters(input_stream.parameters())?;
-        let mut decoder = context_decoder.decoder().video()?;
+        let context_decoder = Codec::from_parameters(input_stream.parameters())
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+
+        let mut decoder = context_decoder
+            .decoder()
+            .video()
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+
         let mut threading_config = decoder.threading();
         threading_config.count = num_cpus::get();
         threading_config.kind = ThreadingType::Frame;
@@ -49,7 +76,9 @@ impl Video {
             w,
             h,
             scaling::Flags::BILINEAR,
-        )?;
+        )
+        .into_report()
+        .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
         Ok(Video {
             input,
@@ -95,7 +124,11 @@ impl Iterator for Video {
         }
 
         // Send eof to decoder so it can clean up
-        self.decoder.send_eof().unwrap();
+        self.decoder
+            .send_eof()
+            .into_report()
+            .attach_printable("Encountered error when decoding video")
+            .unwrap();
         None
     }
 }
@@ -115,7 +148,7 @@ mod test {
 
         for _frame in vid.into_iter() {
             // Do nothing
-            let _picture:Picture = _frame.try_into().unwrap();
+            let _picture: Picture = _frame.try_into().unwrap();
         }
     }
 }

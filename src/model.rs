@@ -1,4 +1,4 @@
-use errno::Errno;
+use error_stack::{Result, ResultExt};
 pub use libvmaf_sys::VmafModelConfig;
 use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags};
 use std::{
@@ -6,12 +6,21 @@ use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
 };
+use thiserror::Error;
+
+use crate::error::VMAFError;
 
 #[derive(Debug)]
 pub struct Model(*mut VmafModel, String);
 
+#[derive(Error, Debug)]
+pub enum ModelError {
+    #[error("Couldn't load model {0}")]
+    Load(String),
+}
+
 impl Model {
-    pub fn new(config: VmafModelConfig, version: String) -> Result<Model, Errno> {
+    pub fn new(config: VmafModelConfig, version: String) -> Result<Model, ModelError> {
         let mut ptr: *mut VmafModel = std::ptr::null_mut();
         let mut config = config.clone();
 
@@ -19,10 +28,9 @@ impl Model {
         let version_ptr: *const c_char = version_cstring.as_ptr() as *const c_char;
         let err = unsafe { vmaf_model_load(&mut ptr, &mut config, version_ptr) };
 
-        match err {
-            0 => Ok(Model(ptr, version)),
-            _ => Err(Errno(-err)),
-        }
+        VMAFError::check_err(err).change_context(ModelError::Load(version.clone()))?;
+
+        Ok(Model(ptr, version))
     }
 
     pub fn version(&self) -> String {
