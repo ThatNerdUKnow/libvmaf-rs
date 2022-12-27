@@ -87,7 +87,7 @@ impl TryFrom<VideoFrame> for Picture {
             _ => 2,
         };
 
-        let conversionHandler = |e| {
+        let conversion_handler = |e| {
             Err(Report::new(e)
                 .change_context(PictureError::Decode)
                 .attach_printable("When copying pixel data"))
@@ -103,12 +103,12 @@ impl TryFrom<VideoFrame> for Picture {
 
                     let linesize_src = match (*src).linesize[i].try_into() {
                         Ok(n) => n,
-                        Err(e) => return conversionHandler(e).attach_printable("src"),
+                        Err(e) => return conversion_handler(e).attach_printable("src"),
                     };
 
                     let linesize_dst = match (*dst).stride[i].try_into() {
                         Ok(n) => n,
-                        Err(e) => return conversionHandler(e).attach_printable("dst"),
+                        Err(e) => return conversion_handler(e).attach_printable("dst"),
                     };
 
                     src_data = src_data.add(linesize_src);

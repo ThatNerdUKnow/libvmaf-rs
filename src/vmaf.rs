@@ -1,6 +1,6 @@
 use crate::{error::VMAFError, picture::PictureError};
 use errno::Errno;
-use error_stack::{bail, IntoReportCompat, Report, Result, ResultExt};
+use error_stack::{bail, Report, Result, ResultExt};
 pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
