@@ -1,4 +1,4 @@
-use crate::{error::VMAFError, picture::PictureError};
+use crate::{error::VMAFError, picture::PictureError, video::FrameNum};
 use errno::Errno;
 use error_stack::{bail, Report, Result, ResultExt};
 pub use libvmaf_sys::VmafLogLevel;
@@ -27,6 +27,8 @@ pub enum VmafContextError {
     Construct,
     #[error("Couldn't use features from model {0}")]
     Feature(String),
+    #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
+    FrameCount(i64, i64),
     #[error("Couldn't run VMAF")]
     Other,
 }
@@ -69,14 +71,26 @@ impl Vmaf {
     /// Fill the data property of the VmafPicture raw pointer with pixel data. View `impl TryFrom<VideoFrame> for Picture`
     /// for reference. If you don't need a custom type for this, just use `Video`; given a path and a resolution it will
     /// decode and scale the video you want to load for you
-    pub fn get_vmaf_scores(
+    pub fn get_vmaf_scores<
+        I: FrameNum + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+    >(
         mut self,
-        reference: impl Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
-        distorted: impl Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+        reference: I,
+        distorted: I,
         model: Model,
     ) -> Result<Vec<f64>, VmafContextError> {
         self.use_features_from_model(&model)
             .change_context(VmafContextError::Feature(model.version()))?;
+
+        let ref_frames = reference.get_frames();
+        let dist_frames = distorted.get_frames();
+
+        if ref_frames != dist_frames {
+            return Err(Report::new(VmafContextError::FrameCount(
+                ref_frames,
+                dist_frames,
+            )));
+        }
 
         let framepair = reference
             .zip(distorted)
