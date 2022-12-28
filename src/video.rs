@@ -16,11 +16,17 @@ use std::{
 };
 use thiserror::Error;
 
+/// The following trait represents the number of frames in the video stream
+pub trait FrameNum{
+    fn get_frames(&self) -> i64;
+}
+
 pub struct Video {
     input: Input,
     decoder: VideoDecoder,
     video_index: usize,
     scaler: Scaler,
+    number_of_frames: i64,
 }
 
 #[derive(Error, Debug)]
@@ -49,6 +55,8 @@ impl Video {
             .into_report()
             .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
+        let number_of_frames = input_stream.frames();
+
         let video_index = input_stream.index();
 
         // Instantiate an appropriate decoder for the input stream
@@ -64,7 +72,7 @@ impl Video {
 
         let mut threading_config = decoder.threading();
         threading_config.count = num_cpus::get();
-        threading_config.kind = ThreadingType::Frame;
+        threading_config.kind = ThreadingType::Slice;
 
         decoder.set_threading(threading_config);
 
@@ -85,6 +93,7 @@ impl Video {
             decoder,
             video_index,
             scaler,
+            number_of_frames
         })
     }
 }
@@ -130,6 +139,12 @@ impl Iterator for Video {
             .attach_printable("Encountered error when decoding video")
             .unwrap();
         None
+    }
+}
+
+impl FrameNum for Video{
+    fn get_frames(&self) -> i64 {
+        self.number_of_frames
     }
 }
 
