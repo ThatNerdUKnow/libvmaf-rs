@@ -2,7 +2,7 @@ use error_stack::{Result, ResultExt};
 pub use libvmaf_sys::VmafModelConfig;
 use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags};
 use std::{
-    ffi::{c_char, CString},
+    ffi::{c_char, CString, NulError},
     fmt::Display,
     ops::{Deref, DerefMut},
 };
@@ -47,8 +47,24 @@ impl Display for Model {
 pub struct ModelConfig(VmafModelConfig);
 
 impl ModelConfig {
-    pub fn new(name: *const c_char, flags: VmafModelFlags) {
-        todo!()
+    pub fn new<'a, N: AsRef<&'a str>>(
+        name: N,
+        flags: VmafModelFlags,
+    ) -> Result<ModelConfig, NulError> {
+        let name = CString::new(*name.as_ref())?.into_raw();
+        Ok(ModelConfig(VmafModelConfig {
+            name,
+            flags: flags as u64,
+        }))
+    }
+}
+
+impl Default for ModelConfig {
+    fn default() -> Self {
+        ModelConfig(VmafModelConfig {
+            name: std::ptr::null(),
+            flags: VmafModelFlags::VMAF_MODEL_FLAGS_DEFAULT as u64,
+        })
     }
 }
 
