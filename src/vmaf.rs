@@ -16,7 +16,7 @@ use crate::{model::Model, picture::Picture};
 pub struct Vmaf(*mut VmafContext);
 
 #[derive(Error, Debug)]
-pub enum VmafContextError {
+pub enum VmafError {
     #[error("Couldn't read VmafPicture {0:?}")]
     ReadFrame(Errno),
     #[error("Couldn't clear feature extractor buffers")]
@@ -39,7 +39,7 @@ impl Vmaf {
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
-    ) -> Result<Vmaf, VmafContextError> {
+    ) -> Result<Vmaf, VmafError> {
         // Build configuration type
         let config = VmafConfiguration {
             log_level,
@@ -61,7 +61,7 @@ impl Vmaf {
         assert!(!(*vmaf).is_null());
 
         // Return an error if vmaf_init returned an error code
-        FFIError::check_err(err).change_context(VmafContextError::Construct)?;
+        FFIError::check_err(err).change_context(VmafError::Construct)?;
 
         Ok(vmaf)
     }
@@ -78,15 +78,15 @@ impl Vmaf {
         reference: I,
         distorted: I,
         model: Model,
-    ) -> Result<Vec<f64>, VmafContextError> {
+    ) -> Result<Vec<f64>, VmafError> {
         self.use_features_from_model(&model)
-            .change_context(VmafContextError::Feature(model.version()))?;
+            .change_context(VmafError::Feature(model.version()))?;
 
         let ref_frames = reference.get_frames();
         let dist_frames = distorted.get_frames();
 
         if ref_frames != dist_frames {
-            return Err(Report::new(VmafContextError::FrameCount(
+            return Err(Report::new(VmafError::FrameCount(
                 ref_frames,
                 dist_frames,
             )));
@@ -112,15 +112,15 @@ impl Vmaf {
                 Ok((reference, distorted)) => {
                     match self.read_pictures(reference, distorted, index.try_into().unwrap()) {
                         Ok(()) => Ok(index),
-                        Err(e) => Err(e).change_context(VmafContextError::Other),
+                        Err(e) => Err(e).change_context(VmafError::Other),
                     }
                 }
-                Err(error) => Err(error.change_context(VmafContextError::Other)),
+                Err(error) => Err(error.change_context(VmafError::Other)),
             })
-            .collect::<Vec<Result<usize, VmafContextError>>>();
+            .collect::<Vec<Result<usize, VmafError>>>();
 
         self.finish_reading_pictures()
-            .change_context(VmafContextError::ClearFrame)?;
+            .change_context(VmafError::ClearFrame)?;
 
         let mut scores: Vec<f64> = vec![];
 
@@ -129,7 +129,7 @@ impl Vmaf {
                 Ok(index) => {
                     let score = self
                         .get_score_at_index(&model, index.try_into().unwrap())
-                        .change_context(VmafContextError::GetScore(index.try_into().unwrap()))?;
+                        .change_context(VmafError::GetScore(index.try_into().unwrap()))?;
                     scores.push(score);
                 }
                 Err(e) => bail!(e),
