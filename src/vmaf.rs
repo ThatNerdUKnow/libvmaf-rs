@@ -1,4 +1,4 @@
-use crate::{error::VMAFError, picture::PictureError, video::FrameNum};
+use crate::{error::FFIError, picture::PictureError, video::FrameNum};
 use errno::Errno;
 use error_stack::{bail, Report, Result, ResultExt};
 pub use libvmaf_sys::VmafLogLevel;
@@ -61,7 +61,7 @@ impl Vmaf {
         assert!(!(*vmaf).is_null());
 
         // Return an error if vmaf_init returned an error code
-        VMAFError::check_err(err).change_context(VmafContextError::Construct)?;
+        FFIError::check_err(err).change_context(VmafContextError::Construct)?;
 
         Ok(vmaf)
     }
@@ -139,35 +139,35 @@ impl Vmaf {
         Ok(scores)
     }
 
-    fn use_features_from_model(&mut self, model: &Model) -> Result<(), VMAFError> {
+    fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
         let err = unsafe { vmaf_use_features_from_model(self.0, **model) };
 
-        VMAFError::check_err(err)
+        FFIError::check_err(err)
     }
     fn read_pictures(
         &mut self,
         reference: Picture,
         distorted: Picture,
         index: u32,
-    ) -> Result<(), VMAFError> {
+    ) -> Result<(), FFIError> {
         let err = unsafe { vmaf_read_pictures(self.0, *reference, *distorted, index) };
 
-        VMAFError::check_err(err)
+        FFIError::check_err(err)
     }
 
-    fn finish_reading_pictures(&mut self) -> Result<(), VMAFError> {
+    fn finish_reading_pictures(&mut self) -> Result<(), FFIError> {
         let null: *mut VmafPicture = ptr::null_mut();
         let err = unsafe { vmaf_read_pictures(self.0, null.clone(), null.clone(), 0) };
 
-        VMAFError::check_err(err)
+        FFIError::check_err(err)
     }
 
-    fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, VMAFError> {
+    fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, FFIError> {
         let mut score: f64 = 0.0;
 
         let err = unsafe { vmaf_score_at_index(self.0, **model, &mut score as *mut f64, index) };
 
-        VMAFError::check_err(err)?;
+        FFIError::check_err(err)?;
 
         Ok(score)
     }
@@ -178,7 +178,7 @@ impl Drop for Vmaf {
         unsafe {
             assert!(!self.0.is_null());
             let err = vmaf_close(self.0);
-            VMAFError::check_err(err)
+            FFIError::check_err(err)
                 .attach_printable("Encountered error when dropping VmafContext")
                 .unwrap();
         }

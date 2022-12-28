@@ -8,7 +8,7 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::error::VMAFError;
+use crate::error::FFIError;
 
 #[derive(Debug)]
 pub struct Model(*mut VmafModel, String);
@@ -28,7 +28,7 @@ impl Model {
         let version_ptr: *const c_char = version_cstring.as_ptr() as *const c_char;
         let err = unsafe { vmaf_model_load(&mut ptr, &mut config, version_ptr) };
 
-        VMAFError::check_err(err).change_context(ModelError::Load(version.clone()))?;
+        FFIError::check_err(err).change_context(ModelError::Load(version.clone()))?;
 
         Ok(Model(ptr, version))
     }

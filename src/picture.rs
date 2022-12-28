@@ -10,7 +10,7 @@ use std::{
 };
 use thiserror::Error;
 
-use crate::error::VMAFError;
+use crate::error::FFIError;
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
 }
@@ -41,7 +41,7 @@ impl Picture {
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bits_per_channel, width, height) };
 
         // Return an error if vmaf_picture_alloc returned an error code
-        VMAFError::check_err(err).change_context(PictureError::Construct)?;
+        FFIError::check_err(err).change_context(PictureError::Construct)?;
 
         Ok(Picture { vmaf_picture: pic })
     }

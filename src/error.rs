@@ -5,24 +5,24 @@ use error_stack::{Report, Result};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub struct VMAFError {
+pub struct FFIError {
     errno: Errno,
 }
 
-impl VMAFError {
-    fn new(err: i32) -> VMAFError {
-        VMAFError { errno: Errno(-err) }
+impl FFIError {
+    fn new(err: i32) -> FFIError {
+        FFIError { errno: Errno(-err) }
     }
 
-    pub fn check_err(err: i32) -> Result<(), VMAFError> {
+    pub fn check_err(err: i32) -> Result<(), FFIError> {
         match err {
             0 => Ok(()),
-            _ => Err(Report::new(VMAFError::new(err))),
+            _ => Err(Report::new(FFIError::new(err))),
         }
     }
 }
 
-impl Display for VMAFError {
+impl Display for FFIError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "OS Code {}, {}", self.errno.0, self.errno)
     }
