@@ -1,11 +1,12 @@
 use crate::{error::FFIError, picture::PictureError, video::FrameNum};
 use errno::Errno;
 use error_stack::{bail, Report, Result, ResultExt};
-pub use libvmaf_sys::VmafLogLevel;
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
     VmafConfiguration, VmafContext, VmafPicture,
 };
+pub use libvmaf_sys::{VmafLogLevel, VmafModel};
+use ptrplus::{AsPtr, IntoRaw};
 use std::{
     ops::{Deref, DerefMut},
     ptr,
@@ -86,10 +87,7 @@ impl Vmaf {
         let dist_frames = distorted.get_frames();
 
         if ref_frames != dist_frames {
-            return Err(Report::new(VmafError::FrameCount(
-                ref_frames,
-                dist_frames,
-            )));
+            return Err(Report::new(VmafError::FrameCount(ref_frames, dist_frames)));
         }
 
         let framepair = reference
@@ -140,7 +138,7 @@ impl Vmaf {
     }
 
     fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
-        let err = unsafe { vmaf_use_features_from_model(self.0, **model) };
+        let err = unsafe { vmaf_use_features_from_model(self.0, model.as_ptr() as *mut VmafModel) };
 
         FFIError::check_err(err)
     }
@@ -165,7 +163,14 @@ impl Vmaf {
     fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, FFIError> {
         let mut score: f64 = 0.0;
 
-        let err = unsafe { vmaf_score_at_index(self.0, **model, &mut score as *mut f64, index) };
+        let err = unsafe {
+            vmaf_score_at_index(
+                self.0,
+                model.as_ptr() as *mut VmafModel,
+                &mut score as *mut f64,
+                index,
+            )
+        };
 
         FFIError::check_err(err)?;
 

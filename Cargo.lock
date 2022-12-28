@@ -220,6 +220,7 @@ dependencies = [
  "libc",
  "libvmaf-sys",
  "num_cpus",
+ "ptrplus",
  "thiserror",
 ]
 
@@ -315,6 +316,12 @@ checksum = "5ea3d908b0e36316caf9e9e2c4625cdde190a7e6f440d794667ed17a1855e725"
 dependencies = [
  "unicode-ident",
 ]
+
+[[package]]
+name = "ptrplus"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f14fa34cab562b910acf9ed28e00ff7fe9dfa53fc82d5ba53d70f10e3b8cfa82"
 
 [[package]]
 name = "quote"

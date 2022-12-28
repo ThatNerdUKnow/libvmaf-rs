@@ -17,6 +17,7 @@ ffmpeg-next = { version = "5.1.1" }
 num_cpus = "1.14.0"
 thiserror = "1.0.37"
 error-stack = { version = "0.2.4", features = ["anyhow"] }
+ptrplus = "2.1.0"
 
 [profile.release]
 lto = true

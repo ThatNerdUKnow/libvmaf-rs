@@ -1,10 +1,10 @@
 use error_stack::{Result, ResultExt};
 pub use libvmaf_sys::VmafModelConfig;
 use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags};
+use ptrplus::{AsPtr, IntoRaw};
 use std::{
     ffi::{c_char, CString, NulError},
     fmt::Display,
-    ops::{Deref, DerefMut},
 };
 use thiserror::Error;
 
@@ -68,17 +68,19 @@ impl Default for ModelConfig {
     }
 }
 
-impl Deref for Model {
-    type Target = *mut VmafModel;
+impl IntoRaw for Model {
+    type Raw = VmafModel;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    fn into_raw(self) -> *mut Self::Raw {
+        self.0
     }
 }
 
-impl DerefMut for Model {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+impl AsPtr for Model {
+    type Raw = VmafModel;
+
+    fn as_ptr(&self) -> *const Self::Raw {
+        self.0
     }
 }
 
