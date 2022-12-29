@@ -18,7 +18,7 @@ use thiserror::Error;
 
 /// The following trait represents the number of frames in the video stream
 pub trait FrameNum{
-    fn get_frames(&self) -> i64;
+    fn get_num_frames(&self) -> i64;
 }
 
 pub struct Video {
@@ -143,7 +143,7 @@ impl Iterator for Video {
 }
 
 impl FrameNum for Video{
-    fn get_frames(&self) -> i64 {
+    fn get_num_frames(&self) -> i64 {
         self.number_of_frames
     }
 }

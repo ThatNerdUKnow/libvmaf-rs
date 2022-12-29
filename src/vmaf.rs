@@ -6,7 +6,7 @@ use libvmaf_sys::{
     VmafConfiguration, VmafContext, VmafPicture,
 };
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
-use ptrplus::{AsPtr, IntoRaw};
+use ptrplus::AsPtr;
 use std::{
     ops::{Deref, DerefMut},
     ptr,
@@ -83,8 +83,8 @@ impl Vmaf {
         self.use_features_from_model(&model)
             .change_context(VmafError::Feature(model.version()))?;
 
-        let ref_frames = reference.get_frames();
-        let dist_frames = distorted.get_frames();
+        let ref_frames = reference.get_num_frames();
+        let dist_frames = distorted.get_num_frames();
 
         if ref_frames != dist_frames {
             return Err(Report::new(VmafError::FrameCount(ref_frames, dist_frames)));
