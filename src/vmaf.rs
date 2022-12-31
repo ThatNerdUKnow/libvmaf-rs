@@ -34,6 +34,12 @@ pub enum VmafError {
     Other,
 }
 
+#[derive(Debug)]
+pub enum VmafStatus {
+    Decode,
+    GetScore,
+}
+
 impl Vmaf {
     pub fn new(
         log_level: VmafLogLevel,
@@ -79,6 +85,7 @@ impl Vmaf {
         reference: I,
         distorted: I,
         model: Model,
+        callback: Option<impl Fn(VmafStatus) -> ()>,
     ) -> Result<Vec<f64>, VmafError> {
         self.use_features_from_model(&model)
             .change_context(VmafError::Feature(model.version()))?;
@@ -96,6 +103,10 @@ impl Vmaf {
                 |(reference, distorted)| -> Result<(Picture, Picture), PictureError> {
                     let reference_pic = TryInto::<Picture>::try_into(reference);
                     let distorted_pic = TryInto::<Picture>::try_into(distorted);
+
+                    if let Some(callback) = &callback {
+                        callback(VmafStatus::Decode)
+                    }
 
                     match (reference_pic, distorted_pic) {
                         (Ok(reference), Ok(distorted)) => Ok((reference, distorted)),
@@ -123,6 +134,9 @@ impl Vmaf {
         let mut scores: Vec<f64> = vec![];
 
         for pairindex in framepair {
+            if let Some(callback) = &callback {
+                callback(VmafStatus::GetScore)
+            }
             match pairindex {
                 Ok(index) => {
                     let score = self
@@ -207,7 +221,7 @@ impl DerefMut for Vmaf {
 mod test {
     use crate::{model::Model, video::Video};
 
-    use super::Vmaf;
+    use super::{Vmaf, VmafStatus};
     use libvmaf_sys::{VmafLogLevel, VmafModelConfig, VmafModelFlags};
 
     #[test]
@@ -235,6 +249,13 @@ mod test {
         };
         let _model: Model = Model::new(config, "vmaf_v0.6.1".to_string()).unwrap();
 
-        _vmaf.get_vmaf_scores(reference, distorted, _model).unwrap();
+        let x = |x: VmafStatus| match x {
+            VmafStatus::Decode => println!("{x:?}"),
+            VmafStatus::GetScore => println!("{x:?}"),
+        };
+        
+        _vmaf
+            .get_vmaf_scores(reference, distorted, _model, Some(x))
+            .unwrap();
     }
 }

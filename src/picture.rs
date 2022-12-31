@@ -35,7 +35,7 @@ impl Picture {
             unsafe { libc::malloc(mem::size_of::<VmafPicture>()) as *mut VmafPicture };
 
         // Sanity check that our pointer is okay to use
-        assert!(!pic.is_null());
+        debug_assert!(!pic.is_null());
 
         // Let libvmaf do their thing with our pointer
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bits_per_channel, width, height) };
@@ -125,14 +125,14 @@ impl Deref for Picture {
     type Target = *mut VmafPicture;
 
     fn deref(&self) -> &Self::Target {
-        assert!(!self.vmaf_picture.is_null());
+        debug_assert!(!self.vmaf_picture.is_null());
         &self.vmaf_picture
     }
 }
 
 impl DerefMut for Picture {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        assert!(!self.vmaf_picture.is_null());
+        debug_assert!(!self.vmaf_picture.is_null());
         &mut self.vmaf_picture
     }
 }
