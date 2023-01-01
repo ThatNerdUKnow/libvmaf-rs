@@ -5,6 +5,7 @@ use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
     VmafConfiguration, VmafContext, VmafPicture,
 };
+/// Re-export of Vmaf Log levels from `libvmaf-sys`
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
 use ptrplus::AsPtr;
 use std::{
@@ -14,29 +15,60 @@ use std::{
 use thiserror::Error;
 
 use crate::{model::Model, picture::Picture};
+
+/// Safe wrapper around `*mut VmafContext`
+/// This is the main struct you should be concerned with
+/// if you want to calculate Vmaf scores
 pub struct Vmaf(*mut VmafContext);
 
+/// An enum of every possible error calculating a Vmaf Score
 #[derive(Error, Debug)]
 pub enum VmafError {
+    /// There was a problem reading frame data
     #[error("Couldn't read VmafPicture {0:?}")]
     ReadFrame(Errno),
+    /// There was a problem clearing the buffers of feature extractors
     #[error("Couldn't clear feature extractor buffers")]
     ClearFrame,
+    /// There was a problem getting a score for a given frame
     #[error("Couldn't get score for frame #{0}")]
     GetScore(u32),
+    /// There was a problem constructing a Vmaf Context
     #[error("Couldn't construct a vmafcontext")]
     Construct,
+    /// There was a problem using the feature extractors required by a model
     #[error("Couldn't use features from model {0}")]
     Feature(String),
+    /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
     #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
     FrameCount(i64, i64),
+    /// Something else went wrong when computing VMAF scores
     #[error("Couldn't run VMAF")]
     Other,
 }
 
+/// This struct represents the status of VMAF calculation  
+///
+/// For every frame pair decoded, a `Decode` variant is emitted to the callback function provided to `Vmaf::get_vmaf_scores()`
+/// After all frames are decoded, the `GetScore` variants are emitted to `Vmaf::get_vmaf_scores()`
+/// 
+/// ### Important!
+/// Given that the two `Video` structs passed to `Vmaf::get_vmaf_scores()` have the same number of frames,
+///  the number of times each variant is emitted from `Vmaf::get_vmaf_scores()` is equal to the number of frame pairs.
+/// In this way, you may calculate the progress of Vmaf score calculation in this manner:
+/// `(# of times a variant has been emitted)/(number of frame pairs)`.
+/// One may intuit that the progress of vmaf score calculation occurs in two stages,
+/// Decoding, and Retrieving the score. Ideally this should be represented in two seperate progress bars
 #[derive(Debug)]
 pub enum VmafStatus {
+    /// update on the decoding of a video framepair.
+    /// Every time a frame pair is decoded and processed, this variant is emitted
+    /// to the callback function provided to `Vmaf::get_vmaf_scores()`
     Decode,
+    /// this variant is an update on the retrieval of a Vmaf Score after all
+    /// frames are decoded and processed.
+    /// After all frames are decoded, this variant is emitted to the callback function provided to 
+    ///`Vmaf::get_vmaf_scores()`
     GetScore,
 }
 
@@ -74,8 +106,10 @@ impl Vmaf {
     }
 
     /// Use this function to get a vector of vmaf scores.
+    /// 
     /// To implement `TryInto` for Picture, you may dereference `Picture` to get a `*mut VmafPicture`.
     /// Fill the data property of the VmafPicture raw pointer with pixel data. View `impl TryFrom<VideoFrame> for Picture`
+    /// 
     /// for reference. If you don't need a custom type for this, just use `Video`; given a path and a resolution it will
     /// decode and scale the video you want to load for you
     pub fn get_vmaf_scores<
@@ -253,7 +287,7 @@ mod test {
             VmafStatus::Decode => println!("{x:?}"),
             VmafStatus::GetScore => println!("{x:?}"),
         };
-        
+
         _vmaf
             .get_vmaf_scores(reference, distorted, _model, Some(x))
             .unwrap();

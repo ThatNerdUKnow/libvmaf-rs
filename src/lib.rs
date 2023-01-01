@@ -15,10 +15,12 @@
 //!
 //! Now, you need to load a model,
 //! ```
-//! let model: Model = Model::default();
+//! let model_config: ModelConfig = ModelConfig::default();
+//! let model: Model = Model::new(model_config, "vmaf_v0.6.1".to_string()).unwrap();
 //! ```
 //!
 //! Optionally, you may define a callback function. This is useful if you want updates on the progress of VMAF score calculation
+//! Refer to the VmafStatus Enum for explanation
 //! ```
 //! let callback = |status: VmafStatus| match status {
 //! VmafStatus::Decode => dostuff(),
@@ -46,7 +48,7 @@
 /// This module defines a wrapper around VmafPicture. This module also translates between FFMPEG's AVFrame struct and VmafPicture
 pub mod picture;
 
-/// Main module,
+/// This is the module you probably want to look at first
 pub mod vmaf;
 
 /// Module concerned with loading VMAFModels
