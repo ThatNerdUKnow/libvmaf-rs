@@ -7,7 +7,7 @@ use libvmaf_sys::{
 };
 /// Re-export of Vmaf Log levels from `libvmaf-sys`
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
-use ptrplus::AsPtr;
+use ptrplus::{AsPtr, IntoRaw};
 use std::{
     ops::{Deref, DerefMut},
     ptr,
@@ -51,7 +51,7 @@ pub enum VmafError {
 ///
 /// For every frame pair decoded, a `Decode` variant is emitted to the callback function provided to `Vmaf::get_vmaf_scores()`
 /// After all frames are decoded, the `GetScore` variants are emitted to `Vmaf::get_vmaf_scores()`
-/// 
+///
 /// ### Important!
 /// Given that the two `Video` structs passed to `Vmaf::get_vmaf_scores()` have the same number of frames,
 ///  the number of times each variant is emitted from `Vmaf::get_vmaf_scores()` is equal to the number of frame pairs.
@@ -67,7 +67,7 @@ pub enum VmafStatus {
     Decode,
     /// this variant is an update on the retrieval of a Vmaf Score after all
     /// frames are decoded and processed.
-    /// After all frames are decoded, this variant is emitted to the callback function provided to 
+    /// After all frames are decoded, this variant is emitted to the callback function provided to
     ///`Vmaf::get_vmaf_scores()`
     GetScore,
 }
@@ -106,10 +106,10 @@ impl Vmaf {
     }
 
     /// Use this function to get a vector of vmaf scores.
-    /// 
+    ///
     /// To implement `TryInto` for Picture, you may dereference `Picture` to get a `*mut VmafPicture`.
     /// Fill the data property of the VmafPicture raw pointer with pixel data. View `impl TryFrom<VideoFrame> for Picture`
-    /// 
+    ///
     /// for reference. If you don't need a custom type for this, just use `Video`; given a path and a resolution it will
     /// decode and scale the video you want to load for you
     pub fn get_vmaf_scores<
@@ -196,7 +196,9 @@ impl Vmaf {
         distorted: Picture,
         index: u32,
     ) -> Result<(), FFIError> {
-        let err = unsafe { vmaf_read_pictures(self.0, *reference, *distorted, index) };
+        let err = unsafe {
+            vmaf_read_pictures(self.0, reference.into_raw(), distorted.into_raw(), index)
+        };
 
         FFIError::check_err(err)
     }

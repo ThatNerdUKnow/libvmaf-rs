@@ -3,22 +3,29 @@ use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, VmafPicture};
+use ptrplus::{AsPtr, IntoRaw};
 use std::{
     ffi::c_uint,
     mem,
-    ops::{Deref, DerefMut},
 };
 use thiserror::Error;
 
 use crate::error::FFIError;
+/// A safe wrapper around `*mut VmafPicture`
+///
+/// Unless you're trying to use a library besides FFMPEG for decoding video,
+/// you shouldn't concern yourself with this struct
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
 }
 
+/// An error context for Vmaf Pictures
 #[derive(Error, Debug)]
 pub enum PictureError {
+    /// There was a problem constructing a Picture struct
     #[error("Encountered a problem when trying to construct Picture")]
     Construct,
+    /// There was a problem decoding a picture
     #[error("Encountered a problem when trying to decode video")]
     Decode,
 }
@@ -80,7 +87,7 @@ impl TryFrom<VideoFrame> for Picture {
         let picture = Picture::new(format, bits_per_channel, frame.width(), frame.height())?;
 
         let src = unsafe { frame.as_ptr() };
-        let dst = *picture;
+        let dst = picture.as_ptr();
         // Fill pixel data
         let bytes_per_value: usize = match bits_per_channel {
             0..=8 => 1,
@@ -121,21 +128,22 @@ impl TryFrom<VideoFrame> for Picture {
     }
 }
 
-impl Deref for Picture {
-    type Target = *mut VmafPicture;
+impl AsPtr for Picture {
+    type Raw = VmafPicture;
 
-    fn deref(&self) -> &Self::Target {
-        debug_assert!(!self.vmaf_picture.is_null());
-        &self.vmaf_picture
+    fn as_ptr(&self) -> *const Self::Raw {
+        self.vmaf_picture
     }
 }
 
-impl DerefMut for Picture {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        debug_assert!(!self.vmaf_picture.is_null());
-        &mut self.vmaf_picture
+impl IntoRaw for Picture {
+    type Raw = VmafPicture;
+
+    fn into_raw(self) -> *mut Self::Raw {
+        self.vmaf_picture
     }
 }
+
 /*
 impl Drop for Picture {
     fn drop(&mut self) {
