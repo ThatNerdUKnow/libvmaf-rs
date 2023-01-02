@@ -17,10 +17,13 @@ use std::{
 use thiserror::Error;
 
 /// The following trait represents the number of frames in the video stream
-pub trait FrameNum{
+pub trait FrameNum {
+    /// Show the number of frames that exist in a video without consuming the iterator
     fn get_num_frames(&self) -> i64;
 }
 
+/// This struct represents a Video context. It contains the input file, decoder, and software scaler  
+/// This struct implements `Iterator<Item = VideoFrame>`, or, an iterator of frames
 pub struct Video {
     input: Input,
     decoder: VideoDecoder,
@@ -36,7 +39,10 @@ pub enum VideoError {
 }
 
 impl Video {
-    pub fn new(path: &dyn AsRef<Path>, w: u32, h: u32) -> Result<Video, VideoError> {
+
+    /// Construct a new Video context. Path should be a path to a video file. The video file may be of any file format, but the pixel format should be in YUV format.
+    /// set w and h to your desired resolution and 
+    pub fn new<P: AsRef<Path>>(path: P, w: u32, h: u32) -> Result<Video, VideoError> {
         // To tell the truth I have no idea what this does
         ffmpeg_next::init()
             .into_report()
@@ -93,7 +99,7 @@ impl Video {
             decoder,
             video_index,
             scaler,
-            number_of_frames
+            number_of_frames,
         })
     }
 }
@@ -142,7 +148,7 @@ impl Iterator for Video {
     }
 }
 
-impl FrameNum for Video{
+impl FrameNum for Video {
     fn get_num_frames(&self) -> i64 {
         self.number_of_frames
     }

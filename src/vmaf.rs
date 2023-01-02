@@ -17,6 +17,7 @@ use thiserror::Error;
 use crate::{model::Model, picture::Picture};
 
 /// Safe wrapper around `*mut VmafContext`
+/// 
 /// This is the main struct you should be concerned with
 /// if you want to calculate Vmaf scores
 pub struct Vmaf(*mut VmafContext);
@@ -53,7 +54,7 @@ pub enum VmafError {
 /// After all frames are decoded, the `GetScore` variants are emitted to `Vmaf::get_vmaf_scores()`
 ///
 /// ### Important!
-/// Given that the two `Video` structs passed to `Vmaf::get_vmaf_scores()` have the same number of frames,
+/// Given that the two [`Video`](../video/struct.Video.html) structs passed to `Vmaf::get_vmaf_scores()` have the same number of frames,
 ///  the number of times each variant is emitted from `Vmaf::get_vmaf_scores()` is equal to the number of frame pairs.
 /// In this way, you may calculate the progress of Vmaf score calculation in this manner:
 /// `(# of times a variant has been emitted)/(number of frame pairs)`.
@@ -86,10 +87,8 @@ impl Vmaf {
             n_subsample,
             cpumask,
         };
-        // Allocate enough memmory for VmafContext
         let ctx: *mut libvmaf_sys::VmafContext = std::ptr::null_mut();
 
-        // Our first pointer should be non-null
         assert!(ctx.is_null());
 
         let mut vmaf: Vmaf = Vmaf(ctx);
@@ -107,11 +106,11 @@ impl Vmaf {
 
     /// Use this function to get a vector of vmaf scores.
     ///
-    /// To implement `TryInto` for Picture, you may dereference `Picture` to get a `*mut VmafPicture`.
-    /// Fill the data property of the VmafPicture raw pointer with pixel data. View `impl TryFrom<VideoFrame> for Picture`
-    ///
-    /// for reference. If you don't need a custom type for this, just use `Video`; given a path and a resolution it will
-    /// decode and scale the video you want to load for you
+    /// To implement `TryInto` for Picture, you may use [`Picture.IntoRaw()`](../picture/struct.Picture.html#impl-IntoRaw-for-Picture) to get a `*mut VmafPicture`.
+    /// Fill the data property of the VmafPicture raw pointer with pixel data. View [`impl TryFrom<VideoFrame> for Picture`](../picture/struct.Picture.html#impl-TryFrom<Video>-for-Picture)
+    /// for reference. 
+    /// 
+    /// If you don't need a custom type for this, just use [`Video`](../video/struct.Video.html).
     pub fn get_vmaf_scores<
         I: FrameNum + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
     >(

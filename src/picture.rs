@@ -3,7 +3,7 @@ use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, VmafPicture};
-use ptrplus::{AsPtr, IntoRaw};
+use ptrplus::{AsPtr, IntoRaw, FromRaw};
 use std::{
     ffi::c_uint,
     mem,
@@ -141,6 +141,12 @@ impl IntoRaw for Picture {
 
     fn into_raw(self) -> *mut Self::Raw {
         self.vmaf_picture
+    }
+}
+
+impl FromRaw<VmafPicture> for Picture{
+    unsafe fn from_raw(raw: *mut VmafPicture) -> Self {
+        Self { vmaf_picture: raw }
     }
 }
 
