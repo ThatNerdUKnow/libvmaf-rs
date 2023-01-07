@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../meson-rs"
+		},
+		{
+			"path": "../vmaf-gui"
 		}
 	],
 	"settings": {}
