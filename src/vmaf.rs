@@ -42,7 +42,7 @@ pub enum VmafError {
     Feature(String),
     /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
     #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
-    FrameCount(i64, i64),
+    FrameCount(usize, usize),
     /// Something else went wrong when computing VMAF scores
     #[error("Couldn't run VMAF")]
     Other,
@@ -112,7 +112,7 @@ impl Vmaf {
     /// 
     /// If you don't need a custom type for this, just use [`Video`](../video/struct.Video.html).
     pub fn get_vmaf_scores<
-        I: FrameNum + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+        I: ExactSizeIterator + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
     >(
         mut self,
         reference: I,
@@ -123,8 +123,8 @@ impl Vmaf {
         self.use_features_from_model(&model)
             .change_context(VmafError::Feature(model.version()))?;
 
-        let ref_frames = reference.get_num_frames();
-        let dist_frames = distorted.get_num_frames();
+        let ref_frames = reference.len();
+        let dist_frames = distorted.len();
 
         if ref_frames != dist_frames {
             return Err(Report::new(VmafError::FrameCount(ref_frames, dist_frames)));
