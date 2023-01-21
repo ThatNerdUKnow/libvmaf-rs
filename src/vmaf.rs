@@ -1,4 +1,4 @@
-use crate::{error::FFIError, picture::PictureError, video::FrameNum};
+use crate::{error::FFIError, picture::PictureError};
 use errno::Errno;
 use error_stack::{bail, Report, Result, ResultExt};
 use libvmaf_sys::{
