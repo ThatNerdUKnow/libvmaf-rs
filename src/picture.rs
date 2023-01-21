@@ -2,11 +2,11 @@ use error_stack::{Report, Result, ResultExt};
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
-use libvmaf_sys::{vmaf_picture_alloc, VmafPicture};
+use libvmaf_sys::{vmaf_picture_alloc, VmafPicture, vmaf_picture_unref};
 use ptrplus::{AsPtr, IntoRaw, FromRaw};
 use std::{
     ffi::c_uint,
-    mem,
+    mem, ptr,
 };
 use thiserror::Error;
 
@@ -150,7 +150,7 @@ impl FromRaw<VmafPicture> for Picture{
     }
 }
 
-/*
+
 impl Drop for Picture {
     fn drop(&mut self) {
         // Allow FFI code to free its memory
@@ -159,7 +159,7 @@ impl Drop for Picture {
             (*self.vmaf_picture)
                 .data
                 .iter()
-                .for_each(|p| assert!(!p.is_null()));
+                .for_each(|p| debug_assert!(!p.is_null()));
 
             // Decrease reference count of self.vmaf_picture, which should free memory of vmaf_picture.data
             let err = vmaf_picture_unref(self.vmaf_picture);
@@ -168,26 +168,14 @@ impl Drop for Picture {
             (*self.vmaf_picture)
                 .data
                 .iter()
-                .for_each(|p| assert!(p.is_null()));
+                .for_each(|p| debug_assert!(p.is_null()));
 
             // If we recieved anything besides the "OK" code from libvmaf, panic
-            if err < 0 {
-                panic!("Got Error {:?} When dropping Picture", Errno(-err));
-            };
-        }
-
-        // Our raw pointer to vmaf_picture should still be valid
-        assert!(!self.vmaf_picture.is_null());
-
-        // Deallocate data pointed to by vmaf_picture and nullify vmaf_picture
-        unsafe {
-            libc::free(self.vmaf_picture as *mut libc::c_void);
-            self.vmaf_picture = ptr::null_mut();
-            assert!(self.vmaf_picture.is_null());
+            FFIError::check_err(err).unwrap();
         }
     }
 }
-*/
+
 #[cfg(test)]
 mod test {
     use libvmaf_sys::VmafPixelFormat;

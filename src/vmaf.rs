@@ -9,6 +9,7 @@ use libvmaf_sys::{
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
 use ptrplus::{AsPtr, IntoRaw};
 use std::{
+    mem,
     ops::{Deref, DerefMut},
     ptr,
 };
@@ -17,7 +18,7 @@ use thiserror::Error;
 use crate::{model::Model, picture::Picture};
 
 /// Safe wrapper around `*mut VmafContext`
-/// 
+///
 /// This is the main struct you should be concerned with
 /// if you want to calculate Vmaf scores
 pub struct Vmaf(*mut VmafContext);
@@ -108,8 +109,8 @@ impl Vmaf {
     ///
     /// To implement `TryInto` for Picture, you may use [`Picture.IntoRaw()`](../picture/struct.Picture.html#impl-IntoRaw-for-Picture) to get a `*mut VmafPicture`.
     /// Fill the data property of the VmafPicture raw pointer with pixel data. View [`impl TryFrom<VideoFrame> for Picture`](../picture/struct.Picture.html#impl-TryFrom<Video>-for-Picture)
-    /// for reference. 
-    /// 
+    /// for reference.
+    ///
     /// If you don't need a custom type for this, just use [`Video`](../video/struct.Video.html).
     pub fn get_vmaf_scores<
         I: ExactSizeIterator + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
@@ -196,9 +197,17 @@ impl Vmaf {
         index: u32,
     ) -> Result<(), FFIError> {
         let err = unsafe {
-            vmaf_read_pictures(self.0, reference.into_raw(), distorted.into_raw(), index)
+            vmaf_read_pictures(
+                self.0,
+                reference.as_ptr() as *mut VmafPicture,
+                distorted.as_ptr() as *mut VmafPicture,
+                index,
+            )
         };
 
+        mem::forget(reference);
+        mem::forget(distorted);
+        
         FFIError::check_err(err)
     }
 
