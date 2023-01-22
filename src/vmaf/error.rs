@@ -1,5 +1,7 @@
-use thiserror::Error;
 use errno::Errno;
+use thiserror::Error;
+
+use crate::video::resolution::Resolution;
 
 /// An enum of every possible error calculating a Vmaf Score
 #[derive(Error, Debug)]
@@ -22,6 +24,9 @@ pub enum VmafError {
     /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
     #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
     FrameCount(usize, usize),
+    /// The two `Video`'s provided had mismatching resolutions
+    #[error("Mismatched resolutions: Reference: {0} Distorted: {1}")]
+    Resolution(Resolution, Resolution),
     /// Something else went wrong when computing VMAF scores
     #[error("Couldn't run VMAF")]
     Other,

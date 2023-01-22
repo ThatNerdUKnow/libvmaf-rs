@@ -1,4 +1,5 @@
 use self::error::VmafError;
+use crate::video::resolution::GetResolution;
 use crate::{error::FFIError, picture::error::PictureError};
 use crate::{model::Model, picture::Picture};
 use error_stack::{bail, Report, Result, ResultExt};
@@ -80,7 +81,9 @@ impl Vmaf {
     ///
     /// If you don't need a custom type for this, just use [`Video`](../video/struct.Video.html).
     pub fn get_vmaf_scores<
-        I: ExactSizeIterator + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+        I: GetResolution
+            + ExactSizeIterator
+            + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
     >(
         mut self,
         reference: I,
@@ -88,14 +91,28 @@ impl Vmaf {
         model: Model,
         callback: Option<impl Fn(VmafStatus) -> ()>,
     ) -> Result<Vec<f64>, VmafError> {
+
+        // Use features from model
         self.use_features_from_model(&model)
             .change_context(VmafError::Feature(model.version()))?;
 
+        // Ensure videos have the same number of frames
         let ref_frames = reference.len();
         let dist_frames = distorted.len();
 
         if ref_frames != dist_frames {
             return Err(Report::new(VmafError::FrameCount(ref_frames, dist_frames)));
+        }
+
+        // Ensure videos have same resolution
+        let ref_resolution = reference.get_resolution();
+        let dist_resolution = distorted.get_resolution();
+
+        if ref_resolution != dist_resolution {
+            return Err(Report::new(VmafError::Resolution(
+                ref_resolution.clone(),
+                dist_resolution.clone(),
+            )));
         }
 
         let framepair = reference
@@ -155,8 +172,13 @@ impl Vmaf {
 
 impl Default for Vmaf {
     fn default() -> Self {
-        Self::new(VmafLogLevel::VMAF_LOG_LEVEL_WARNING, num_cpus::get().try_into().unwrap(), 0, 0)
-            .expect("Couldn't construct default Vmaf context")
+        Self::new(
+            VmafLogLevel::VMAF_LOG_LEVEL_WARNING,
+            num_cpus::get().try_into().unwrap(),
+            0,
+            0,
+        )
+        .expect("Couldn't construct default Vmaf context")
     }
 }
 

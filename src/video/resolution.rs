@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug,PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Resolution {
     pub width: usize,
     pub height: usize,
@@ -14,7 +14,7 @@ impl GetResolution for Resolution {
 
 impl Display for Resolution {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Width: {}, Height: {}", self.width, self.height)
+        write!(f, "{}x{}", self.width, self.height)
     }
 }
 
