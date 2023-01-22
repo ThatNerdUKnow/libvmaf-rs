@@ -1,4 +1,4 @@
-use std::ffi::{NulError, CString};
+use std::ffi::{CString, NulError};
 
 use libvmaf_sys::{VmafModelConfig, VmafModelFlags};
 
@@ -23,5 +23,11 @@ impl Default for ModelConfig {
             name: std::ptr::null(),
             flags: VmafModelFlags::VMAF_MODEL_FLAGS_DEFAULT as u64,
         })
+    }
+}
+
+impl AsRef<VmafModelConfig> for ModelConfig {
+    fn as_ref(&self) -> &VmafModelConfig {
+        &self.0
     }
 }

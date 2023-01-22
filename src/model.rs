@@ -1,5 +1,4 @@
 use error_stack::{Result, ResultExt};
-pub use libvmaf_sys::VmafModelConfig;
 use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel};
 use ptrplus::{AsPtr, IntoRaw};
 use std::{
@@ -9,18 +8,19 @@ use std::{
 
 use crate::error::FFIError;
 
-use self::error::ModelError;
+use self::{config::ModelConfig, error::ModelError};
 
-pub mod error;
 pub mod config;
+pub mod error;
 
 #[derive(Debug)]
 pub struct Model(*mut VmafModel, String);
 
 impl Model {
-    pub fn new(config: VmafModelConfig, version: String) -> Result<Model, ModelError> {
+    pub fn new(config: ModelConfig, version: String) -> Result<Model, ModelError> {
         let mut ptr: *mut VmafModel = std::ptr::null_mut();
-        let mut config = config.clone();
+
+        let mut config = config.as_ref().to_owned();
 
         let version_cstring: CString = CString::new(version.clone()).unwrap();
         let version_ptr: *const c_char = version_cstring.as_ptr() as *const c_char;
@@ -70,16 +70,12 @@ impl Drop for Model {
 
 #[cfg(test)]
 mod test {
-    use libvmaf_sys::{VmafModelConfig, VmafModelFlags};
 
-    use super::Model;
+    use super::{config::ModelConfig, Model};
 
     #[test]
     fn construct() {
-        let config: VmafModelConfig = VmafModelConfig {
-            name: std::ptr::null(),
-            flags: VmafModelFlags::VMAF_MODEL_FLAGS_DEFAULT as u64,
-        };
+        let config = ModelConfig::default();
         let _model: Model = Model::new(config, "vmaf_v0.6.1".to_string()).unwrap();
     }
 }

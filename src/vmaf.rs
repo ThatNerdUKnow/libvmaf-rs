@@ -10,8 +10,8 @@ pub use libvmaf_sys::{VmafLogLevel, VmafModel};
 use std::ops::{Deref, DerefMut};
 
 pub mod error;
-pub mod status;
 mod ffi;
+pub mod status;
 
 /// Safe wrapper around `*mut VmafContext`
 ///
@@ -61,14 +61,14 @@ impl Vmaf {
         I: GetResolution
             + ExactSizeIterator
             + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+        F: Fn(VmafStatus) -> (),
     >(
         mut self,
         reference: I,
         distorted: I,
         model: Model,
-        callback: Option<impl Fn(VmafStatus) -> ()>,
+        callback: Option<F>,
     ) -> Result<Vec<f64>, VmafError> {
-
         // Use features from model
         self.use_features_from_model(&model)
             .change_context(VmafError::Feature(model.version()))?;
@@ -186,7 +186,10 @@ impl DerefMut for Vmaf {
 }
 #[cfg(test)]
 mod test {
-    use crate::{model::Model, video::Video};
+    use crate::{
+        model::{config::ModelConfig, Model},
+        video::Video,
+    };
 
     use super::{Vmaf, VmafStatus};
     use libvmaf_sys::{VmafLogLevel, VmafModelConfig, VmafModelFlags};
@@ -210,10 +213,7 @@ mod test {
 
         let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
         let distorted: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
-        let config: VmafModelConfig = VmafModelConfig {
-            name: std::ptr::null(),
-            flags: VmafModelFlags::VMAF_MODEL_FLAGS_DEFAULT as u64,
-        };
+        let config = ModelConfig::default();
         let _model: Model = Model::new(config, "vmaf_v0.6.1".to_string()).unwrap();
 
         let x = |x: VmafStatus| match x {
