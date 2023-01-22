@@ -1,21 +1,14 @@
+use self::error::VmafError;
 use crate::{error::FFIError, picture::error::PictureError};
+use crate::{model::Model, picture::Picture};
 use error_stack::{bail, Report, Result, ResultExt};
-use libvmaf_sys::{
-    vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
-    VmafConfiguration, VmafContext, VmafPicture,
-};
+use libvmaf_sys::{vmaf_close, vmaf_init, VmafConfiguration, VmafContext};
 /// Re-export of Vmaf Log levels from `libvmaf-sys`
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
-use ptrplus::AsPtr;
-use std::{
-    mem,
-    ops::{Deref, DerefMut},
-    ptr,
-};
-use crate::{model::Model, picture::Picture};
-use self::error::VmafError;
+use std::ops::{Deref, DerefMut};
 
 pub mod error;
+mod ffi;
 
 /// Safe wrapper around `*mut VmafContext`
 ///
@@ -157,56 +150,6 @@ impl Vmaf {
         }
 
         Ok(scores)
-    }
-
-    fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
-        let err = unsafe { vmaf_use_features_from_model(self.0, model.as_ptr() as *mut VmafModel) };
-
-        FFIError::check_err(err)
-    }
-    fn read_pictures(
-        &mut self,
-        reference: Picture,
-        distorted: Picture,
-        index: u32,
-    ) -> Result<(), FFIError> {
-        let err = unsafe {
-            vmaf_read_pictures(
-                self.0,
-                reference.as_ptr() as *mut VmafPicture,
-                distorted.as_ptr() as *mut VmafPicture,
-                index,
-            )
-        };
-
-        mem::forget(reference);
-        mem::forget(distorted);
-
-        FFIError::check_err(err)
-    }
-
-    fn finish_reading_pictures(&mut self) -> Result<(), FFIError> {
-        let null: *mut VmafPicture = ptr::null_mut();
-        let err = unsafe { vmaf_read_pictures(self.0, null.clone(), null.clone(), 0) };
-
-        FFIError::check_err(err)
-    }
-
-    fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, FFIError> {
-        let mut score: f64 = 0.0;
-
-        let err = unsafe {
-            vmaf_score_at_index(
-                self.0,
-                model.as_ptr() as *mut VmafModel,
-                &mut score as *mut f64,
-                index,
-            )
-        };
-
-        FFIError::check_err(err)?;
-
-        Ok(score)
     }
 }
 
