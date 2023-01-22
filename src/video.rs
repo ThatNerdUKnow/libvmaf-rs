@@ -1,4 +1,3 @@
-use core::num;
 use error_stack::{IntoReport, Result, ResultExt};
 use ffmpeg_next::{
     codec::context::Context as Codec,
@@ -24,15 +23,13 @@ pub struct Video {
     decoder: VideoDecoder,
     video_index: usize,
     scaler: Scaler,
-    number_of_frames: usize,
+    number_of_frames: i64,
 }
 
 #[derive(Error, Debug)]
 pub enum VideoError {
     #[error("Encountered an error when creating video context {0}")]
     Construct(PathBuf),
-    #[error("Couldn't get number of frames for video")]
-    NumFrames(i64),
 }
 
 impl Video {
@@ -58,11 +55,6 @@ impl Video {
             .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
         let number_of_frames = input_stream.frames();
-
-        let number_of_frames: usize = number_of_frames
-            .try_into()
-            .into_report()
-            .change_context(VideoError::NumFrames(number_of_frames))?;
 
         let video_index = input_stream.index();
 
@@ -136,7 +128,7 @@ impl Iterator for Video {
                     let mut scaled_frame = VideoFrame::empty();
                     self.scaler.run(&frame, &mut scaled_frame).unwrap();
                     self.number_of_frames = self.number_of_frames - 1;
-                    debug_assert!(self.number_of_frames >= 0);
+                    assert!(self.number_of_frames >= 0);
                     return Some(scaled_frame);
                 }
                 Err(_) => continue,
@@ -153,7 +145,10 @@ impl Iterator for Video {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.number_of_frames, Some(self.number_of_frames))
+        (
+            self.number_of_frames.try_into().unwrap(),
+            Some(self.number_of_frames.try_into().unwrap()),
+        )
     }
 }
 

@@ -7,7 +7,7 @@ use libvmaf_sys::{
 };
 /// Re-export of Vmaf Log levels from `libvmaf-sys`
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
-use ptrplus::{AsPtr, IntoRaw};
+use ptrplus::AsPtr;
 use std::{
     mem,
     ops::{Deref, DerefMut},
@@ -207,7 +207,7 @@ impl Vmaf {
 
         mem::forget(reference);
         mem::forget(distorted);
-        
+
         FFIError::check_err(err)
     }
 

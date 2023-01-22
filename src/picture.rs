@@ -6,7 +6,7 @@ use libvmaf_sys::{vmaf_picture_alloc, VmafPicture, vmaf_picture_unref};
 use ptrplus::{AsPtr, IntoRaw, FromRaw};
 use std::{
     ffi::c_uint,
-    mem, ptr,
+    mem
 };
 use thiserror::Error;
 
