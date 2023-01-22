@@ -192,7 +192,7 @@ mod test {
     };
 
     use super::{Vmaf, VmafStatus};
-    use libvmaf_sys::{VmafLogLevel, VmafModelConfig, VmafModelFlags};
+    use libvmaf_sys::VmafLogLevel;
 
     #[test]
     fn construct() {
