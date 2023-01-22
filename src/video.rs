@@ -10,11 +10,12 @@ use ffmpeg_next::{
     threading::Type as ThreadingType,
     Error as AVError, Stream,
 };
-use std::{
-    fmt::Debug,
-    path::{Path, PathBuf},
-};
-use thiserror::Error;
+use std::path::Path;
+
+use self::{error::VideoError, resolution::{Resolution, GetResolution}};
+
+pub mod error;
+pub mod resolution;
 
 /// This struct represents a Video context. It contains the input file, decoder, and software scaler  
 /// This struct implements `Iterator<Item = VideoFrame>`, or, an iterator of frames
@@ -24,12 +25,15 @@ pub struct Video {
     video_index: usize,
     scaler: Scaler,
     number_of_frames: i64,
+    resolution: Resolution,
 }
 
-#[derive(Error, Debug)]
-pub enum VideoError {
-    #[error("Encountered an error when creating video context {0}")]
-    Construct(PathBuf),
+
+
+impl GetResolution for Video {
+    fn get_resolution(&self) -> &Resolution {
+        &self.resolution
+    }
 }
 
 impl Video {
@@ -87,12 +91,25 @@ impl Video {
         .into_report()
         .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
+        let width: usize = w
+            .try_into()
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+
+        let height: usize = h
+            .try_into()
+            .into_report()
+            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+
+        let resolution = Resolution { width, height };
+
         Ok(Video {
             input,
             decoder,
             video_index,
             scaler,
             number_of_frames,
+            resolution,
         })
     }
 }
