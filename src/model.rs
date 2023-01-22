@@ -1,23 +1,21 @@
 use error_stack::{Result, ResultExt};
 pub use libvmaf_sys::VmafModelConfig;
-use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel, VmafModelFlags};
+use libvmaf_sys::{vmaf_model_destroy, vmaf_model_load, VmafModel};
 use ptrplus::{AsPtr, IntoRaw};
 use std::{
-    ffi::{c_char, CString, NulError},
+    ffi::{c_char, CString},
     fmt::Display,
 };
-use thiserror::Error;
 
 use crate::error::FFIError;
 
+use self::error::ModelError;
+
+pub mod error;
+pub mod config;
+
 #[derive(Debug)]
 pub struct Model(*mut VmafModel, String);
-
-#[derive(Error, Debug)]
-pub enum ModelError {
-    #[error("Couldn't load model {0}")]
-    Load(String),
-}
 
 impl Model {
     pub fn new(config: VmafModelConfig, version: String) -> Result<Model, ModelError> {
@@ -41,30 +39,6 @@ impl Model {
 impl Display for Model {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.1)
-    }
-}
-
-pub struct ModelConfig(VmafModelConfig);
-
-impl ModelConfig {
-    pub fn new<'a, N: AsRef<&'a str>>(
-        name: N,
-        flags: VmafModelFlags,
-    ) -> Result<ModelConfig, NulError> {
-        let name = CString::new(*name.as_ref())?.into_raw();
-        Ok(ModelConfig(VmafModelConfig {
-            name,
-            flags: flags as u64,
-        }))
-    }
-}
-
-impl Default for ModelConfig {
-    fn default() -> Self {
-        ModelConfig(VmafModelConfig {
-            name: std::ptr::null(),
-            flags: VmafModelFlags::VMAF_MODEL_FLAGS_DEFAULT as u64,
-        })
     }
 }
 
