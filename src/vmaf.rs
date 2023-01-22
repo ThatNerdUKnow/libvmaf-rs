@@ -153,6 +153,13 @@ impl Vmaf {
     }
 }
 
+impl Default for Vmaf {
+    fn default() -> Self {
+        Self::new(VmafLogLevel::VMAF_LOG_LEVEL_WARNING, num_cpus::get().try_into().unwrap(), 0, 0)
+            .expect("Couldn't construct default Vmaf context")
+    }
+}
+
 impl Drop for Vmaf {
     fn drop(&mut self) {
         unsafe {

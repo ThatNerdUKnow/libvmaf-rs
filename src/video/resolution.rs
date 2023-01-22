@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq, Eq)]
 pub struct Resolution {
     pub width: usize,
     pub height: usize,
