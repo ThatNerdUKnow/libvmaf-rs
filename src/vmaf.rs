@@ -1,5 +1,4 @@
 use crate::{error::FFIError, picture::error::PictureError};
-use errno::Errno;
 use error_stack::{bail, Report, Result, ResultExt};
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model,
@@ -13,41 +12,16 @@ use std::{
     ops::{Deref, DerefMut},
     ptr,
 };
-use thiserror::Error;
-
 use crate::{model::Model, picture::Picture};
+use self::error::VmafError;
+
+pub mod error;
 
 /// Safe wrapper around `*mut VmafContext`
 ///
 /// This is the main struct you should be concerned with
 /// if you want to calculate Vmaf scores
 pub struct Vmaf(*mut VmafContext);
-
-/// An enum of every possible error calculating a Vmaf Score
-#[derive(Error, Debug)]
-pub enum VmafError {
-    /// There was a problem reading frame data
-    #[error("Couldn't read VmafPicture {0:?}")]
-    ReadFrame(Errno),
-    /// There was a problem clearing the buffers of feature extractors
-    #[error("Couldn't clear feature extractor buffers")]
-    ClearFrame,
-    /// There was a problem getting a score for a given frame
-    #[error("Couldn't get score for frame #{0}")]
-    GetScore(u32),
-    /// There was a problem constructing a Vmaf Context
-    #[error("Couldn't construct a vmafcontext")]
-    Construct,
-    /// There was a problem using the feature extractors required by a model
-    #[error("Couldn't use features from model {0}")]
-    Feature(String),
-    /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
-    #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
-    FrameCount(usize, usize),
-    /// Something else went wrong when computing VMAF scores
-    #[error("Couldn't run VMAF")]
-    Other,
-}
 
 /// This struct represents the status of VMAF calculation  
 ///
