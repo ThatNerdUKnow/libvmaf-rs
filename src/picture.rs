@@ -2,32 +2,19 @@ use error_stack::{Report, Result, ResultExt};
 use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
-use libvmaf_sys::{vmaf_picture_alloc, VmafPicture, vmaf_picture_unref};
-use ptrplus::{AsPtr, IntoRaw, FromRaw};
-use std::{
-    ffi::c_uint,
-    mem
-};
-use thiserror::Error;
+use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
+use ptrplus::{AsPtr, FromRaw, IntoRaw};
+use std::{ffi::c_uint, mem};
 
-use crate::error::FFIError;
+use crate::{error::FFIError, picture::error::PictureError};
+
+pub mod error;
 /// A safe wrapper around `*mut VmafPicture`
 ///
 /// Unless you're trying to use a library besides FFMPEG for decoding video,
 /// you shouldn't concern yourself with this struct
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
-}
-
-/// An error context for Vmaf Pictures
-#[derive(Error, Debug)]
-pub enum PictureError {
-    /// There was a problem constructing a Picture struct
-    #[error("Encountered a problem when trying to construct Picture")]
-    Construct,
-    /// There was a problem decoding a picture
-    #[error("Encountered a problem when trying to decode video")]
-    Decode,
 }
 
 impl Picture {
@@ -144,12 +131,11 @@ impl IntoRaw for Picture {
     }
 }
 
-impl FromRaw<VmafPicture> for Picture{
+impl FromRaw<VmafPicture> for Picture {
     unsafe fn from_raw(raw: *mut VmafPicture) -> Self {
         Self { vmaf_picture: raw }
     }
 }
-
 
 impl Drop for Picture {
     fn drop(&mut self) {
