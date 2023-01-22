@@ -112,6 +112,10 @@ impl Video {
             resolution,
         })
     }
+
+    pub fn get_num_frames(&self) -> i64{
+        self.number_of_frames
+    }
 }
 
 impl ExactSizeIterator for Video {}
