@@ -1,13 +1,15 @@
-use std::{mem, ptr};
+use std::ptr;
 
-use libvmaf_sys::{vmaf_use_features_from_model, VmafModel, vmaf_read_pictures, VmafPicture, vmaf_score_at_index};
+use crate::{error::FFIError, model::Model, picture::Picture};
 use error_stack::Result;
+use libvmaf_sys::{
+    vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model, VmafModel, VmafPicture,
+};
 use ptrplus::AsPtr;
-use crate::{error::FFIError, picture::Picture, model::Model};
 
 use super::Vmaf;
 
-impl Vmaf{
+impl Vmaf {
     pub fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
         let err = unsafe { vmaf_use_features_from_model(self.0, model.as_ptr() as *mut VmafModel) };
 
@@ -28,8 +30,11 @@ impl Vmaf{
             )
         };
 
-        mem::forget(reference);
-        mem::forget(distorted);
+        reference.consume();
+        distorted.consume();
+
+        //mem::forget(reference);
+        //mem::forget(distorted);
 
         FFIError::check_err(err)
     }
@@ -57,5 +62,4 @@ impl Vmaf{
 
         Ok(score)
     }
-
 }

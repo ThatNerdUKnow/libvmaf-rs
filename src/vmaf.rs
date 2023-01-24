@@ -129,11 +129,12 @@ impl Vmaf {
         let mut scores: Vec<f64> = vec![];
 
         for pairindex in framepair {
-            if let Some(callback) = &callback {
-                callback(VmafStatus::GetScore)
-            }
             match pairindex {
                 Ok(index) => {
+                    if let Some(callback) = &callback {
+                        callback(VmafStatus::GetScore)
+                    }
+
                     let score = self
                         .get_score_at_index(&model, index.try_into().unwrap())
                         .change_context(VmafError::GetScore(index.try_into().unwrap()))?;

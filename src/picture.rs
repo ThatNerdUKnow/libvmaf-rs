@@ -4,7 +4,7 @@ use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
 use ptrplus::{AsPtr, FromRaw, IntoRaw};
-use std::{ffi::c_uint, mem};
+use std::{cell::Cell, ffi::c_uint, mem};
 
 use crate::{error::FFIError, picture::error::PictureError};
 
@@ -15,6 +15,7 @@ pub mod error;
 /// you shouldn't concern yourself with this struct
 pub struct Picture {
     vmaf_picture: *mut VmafPicture,
+    consumed: Cell<bool>,
 }
 
 impl Picture {
@@ -37,7 +38,16 @@ impl Picture {
         // Return an error if vmaf_picture_alloc returned an error code
         FFIError::check_err(err).change_context(PictureError::Construct)?;
 
-        Ok(Picture { vmaf_picture: pic })
+        Ok(Picture {
+            vmaf_picture: pic,
+            consumed: Cell::new(false),
+        })
+    }
+
+    /// This method is intended to be used when `self` is passed to a function that calls `vmaf_picture_unref` internally  
+    /// Notably, `vmaf_read_pictures` does this
+    pub fn consume(self) -> () {
+        self.consumed.set(true);
     }
 }
 
@@ -132,32 +142,28 @@ impl IntoRaw for Picture {
 }
 
 impl FromRaw<VmafPicture> for Picture {
+    /// Safety warning! This function assumes `raw` hasn't been consumed yet! For reference on what I mean by "consume" please refer to `Picture.consume()`  
+    /// If `raw` is a pointer which has previously been given to `libvmaf_sys::vmaf_read_pictures` this will
+    /// cause a double free, as `vmaf_picture_unref` will be called twice!
     unsafe fn from_raw(raw: *mut VmafPicture) -> Self {
-        Self { vmaf_picture: raw }
+        Self {
+            vmaf_picture: raw,
+            consumed: Cell::new(false),
+        }
     }
 }
 
 impl Drop for Picture {
     fn drop(&mut self) {
         // Allow FFI code to free its memory
+
+        if self.consumed.get() == false {
+            unsafe {
+                vmaf_picture_unref(self.vmaf_picture);
+            }
+        }
         unsafe {
-            // Each pointer in the data array should be valid at this point
-            (*self.vmaf_picture)
-                .data
-                .iter()
-                .for_each(|p| debug_assert!(!p.is_null()));
-
-            // Decrease reference count of self.vmaf_picture, which should free memory of vmaf_picture.data
-            let err = vmaf_picture_unref(self.vmaf_picture);
-
-            // Now that libvmaf has freed data referenced by vmaf_picture, each pointer in the data array should be null
-            (*self.vmaf_picture)
-                .data
-                .iter()
-                .for_each(|p| debug_assert!(p.is_null()));
-
-            // If we recieved anything besides the "OK" code from libvmaf, panic
-            FFIError::check_err(err).unwrap();
+            libc::free(self.vmaf_picture as *mut c_void);
         }
     }
 }
