@@ -14,7 +14,10 @@ repository = "https://github.com/ThatNerdUKnow/libvmaf-rs"
 "libvmaf-sys" = { version = "0.3.6", features = ["float"] }
 "errno" = "0.2.8"
 "libc" = "0.2.137"
-ffmpeg-next = { version = "5.1.1" }
+ffmpeg-the-third = { version = "1.0.1+ffmpeg-5.1.2", features = [
+    "default",
+    "static",
+] }
 num_cpus = "1.14.0"
 thiserror = "1.0.37"
 error-stack = { version = "0.2.4", features = ["anyhow"] }

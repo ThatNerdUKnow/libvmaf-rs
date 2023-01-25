@@ -1,5 +1,5 @@
 use std::ffi::CStr;
-pub use ffmpeg_next::util::version as ffmpeg_version;
+pub use ffmpeg_the_third::util::version as ffmpeg_version;
 
 
 pub fn vmaf_version() -> String {

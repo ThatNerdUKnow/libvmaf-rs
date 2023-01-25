@@ -1,5 +1,5 @@
 use error_stack::{Report, Result, ResultExt};
-use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
+use ffmpeg_the_third::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};

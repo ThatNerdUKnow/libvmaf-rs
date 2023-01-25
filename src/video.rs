@@ -1,5 +1,5 @@
 use error_stack::{IntoReport, Result, ResultExt};
-use ffmpeg_next::{
+use ffmpeg_the_third::{
     codec::context::Context as Codec,
     codec::decoder::Video as VideoDecoder,
     format::{context::Input, input},
@@ -41,7 +41,7 @@ impl Video {
     /// set w and h to your desired resolution and
     pub fn new<P: AsRef<Path>>(path: P, w: u32, h: u32) -> Result<Video, VideoError> {
         // To tell the truth I have no idea what this does
-        ffmpeg_next::init()
+        ffmpeg_the_third::init()
             .into_report()
             .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
 
