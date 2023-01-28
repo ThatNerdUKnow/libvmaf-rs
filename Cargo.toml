@@ -2,7 +2,7 @@
 name = "libvmaf-rs"
 license = "GPL-3.0-or-later"
 description = "(WIP) Ergonomic bindings for Netflix's libvmaf"
-version = "0.3.1"
+version = "0.3.2"
 readme = "readme.md"
 edition = "2021"
 authors = ["Brandon Piña"]

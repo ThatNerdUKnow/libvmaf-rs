@@ -10,12 +10,12 @@ use ptrplus::AsPtr;
 use super::Vmaf;
 
 impl Vmaf {
-    pub fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
+    pub(super) fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
         let err = unsafe { vmaf_use_features_from_model(self.0, model.as_ptr() as *mut VmafModel) };
 
         FFIError::check_err(err)
     }
-    pub fn read_pictures(
+    pub(super) fn read_pictures(
         &mut self,
         reference: Picture,
         distorted: Picture,
@@ -39,14 +39,14 @@ impl Vmaf {
         FFIError::check_err(err)
     }
 
-    pub fn finish_reading_pictures(&mut self) -> Result<(), FFIError> {
+    pub(super) fn finish_reading_pictures(&mut self) -> Result<(), FFIError> {
         let null: *mut VmafPicture = ptr::null_mut();
         let err = unsafe { vmaf_read_pictures(self.0, null.clone(), null.clone(), 0) };
 
         FFIError::check_err(err)
     }
 
-    pub fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, FFIError> {
+    pub(super) fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, FFIError> {
         let mut score: f64 = 0.0;
 
         let err = unsafe {
