@@ -1,8 +1,8 @@
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use ffmpeg_next::{
     codec::context::Context as Codec,
     codec::decoder::Video as VideoDecoder,
-    format::{context::Input, input},
+    format::{context::Input, input, Pixel},
     frame::Video as VideoFrame,
     media::Type,
     software::scaling,
@@ -12,7 +12,10 @@ use ffmpeg_next::{
 };
 use std::path::Path;
 
-use self::{error::VideoError, resolution::{Resolution, GetResolution}};
+use self::{
+    error::VideoError,
+    resolution::{GetResolution, Resolution},
+};
 
 pub mod error;
 pub mod resolution;
@@ -27,8 +30,6 @@ pub struct Video {
     number_of_frames: i64,
     resolution: Resolution,
 }
-
-
 
 impl GetResolution for Video {
     fn get_resolution(&self) -> &Resolution {
@@ -79,6 +80,26 @@ impl Video {
 
         decoder.set_threading(threading_config);
 
+        // Guard against attempting to construct a scaler with unknown pixel format and zero size frame
+        match (decoder.format(), decoder.width(), decoder.height()) {
+            (_, 0, _) => {
+                return Err(VideoError::Resolution(
+                    Resolution::new(decoder.width(), decoder.height())
+                        .change_context(VideoError::Construct(path.as_ref().to_owned()))?,
+                )
+                .into())
+            }
+            (_, _, 0) => {
+                return Err(VideoError::Resolution(
+                    Resolution::new(decoder.width(), decoder.height())
+                        .change_context(VideoError::Construct(path.as_ref().to_owned()))?,
+                )
+                .into())
+            }
+            (Pixel::None, _, _) => return Err(VideoError::Format(decoder.format()).into()),
+            _ => (),
+        };
+
         let scaler = Scaler::get(
             decoder.format(),
             decoder.width(),
@@ -113,7 +134,7 @@ impl Video {
         })
     }
 
-    pub fn get_num_frames(&self) -> i64{
+    pub fn get_num_frames(&self) -> i64 {
         self.number_of_frames
     }
 }
@@ -190,5 +211,14 @@ mod test {
             // Do nothing
             let _picture: Picture = _frame.try_into().unwrap();
         }
+    }
+
+    #[test]
+    fn invalid_video() {
+        let path = Path::new("./src/video.rs");
+
+        let _v = Video::new(&path, 640, 480);
+
+        assert!(_v.is_err())
     }
 }

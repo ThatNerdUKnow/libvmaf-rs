@@ -1,16 +1,20 @@
 {
 	"folders": [
 		{
+			"name": "vmaf-gui",
+			"path": "../vmaf-gui"
+		},
+		{
+			"name": "libvmaf-rs",
 			"path": "."
 		},
 		{
+			"name": "libvmaf-sys",
 			"path": "../libvmaf-sys"
 		},
 		{
+			"name": "meson-rs",
 			"path": "../meson-rs"
-		},
-		{
-			"path": "../vmaf-gui"
 		}
 	],
 	"settings": {}

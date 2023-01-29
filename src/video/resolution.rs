@@ -1,9 +1,22 @@
-use std::fmt::Display;
+use super::error::VideoError;
+use error_stack::{IntoReport, Result};
+use std::{fmt::Display, num::TryFromIntError};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Resolution {
     pub width: usize,
     pub height: usize,
+}
+
+impl Resolution {
+    pub fn new(w: u32, h: u32) -> Result<Resolution, TryFromIntError> {
+        let w: usize = w.try_into().into_report()?;
+        let h: usize = h.try_into().into_report()?;
+        Ok(Resolution {
+            width: w,
+            height: h,
+        })
+    }
 }
 
 impl GetResolution for Resolution {
