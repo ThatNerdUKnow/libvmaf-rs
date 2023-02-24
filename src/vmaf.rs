@@ -1,5 +1,6 @@
 use self::error::VmafError;
 use self::status::VmafStatus;
+use crate::picture::ValidRef;
 use crate::video::resolution::GetResolution;
 use crate::{error::FFIError, picture::error::PictureError};
 use crate::{model::Model, picture::Picture};
@@ -60,7 +61,7 @@ impl Vmaf {
     pub fn get_vmaf_scores<
         I: GetResolution
             + ExactSizeIterator
-            + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
+            + Iterator<Item = impl TryInto<Picture<ValidRef>, Error = Report<PictureError>>>,
         F: Fn(VmafStatus) -> (),
     >(
         mut self,
