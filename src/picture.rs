@@ -4,7 +4,7 @@ use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
 use ptrplus::{AsPtr, FromRaw, IntoRaw};
-use std::{cell::Cell, ffi::c_uint, mem};
+use std::{ffi::c_uint, marker::PhantomData, mem};
 
 use crate::{error::FFIError, picture::error::PictureError};
 
@@ -13,10 +13,16 @@ pub mod error;
 ///
 /// Unless you're trying to use a library besides FFMPEG for decoding video,
 /// you shouldn't concern yourself with this struct
-pub struct Picture {
-    vmaf_picture: *mut VmafPicture,
-    consumed: Cell<bool>,
+pub struct Picture<State: Consumable = ValidRef> {
+    vmaf_picture: Option<*mut VmafPicture>,
+    consumed: PhantomData<State>,
 }
+
+pub struct ValidRef;
+impl Consumable for ValidRef {}
+pub struct Consumed;
+impl Consumable for Consumed {}
+pub trait Consumable {}
 
 impl Picture {
     pub fn new(
@@ -39,15 +45,18 @@ impl Picture {
         FFIError::check_err(err).change_context(PictureError::Construct)?;
 
         Ok(Picture {
-            vmaf_picture: pic,
-            consumed: Cell::new(false),
+            vmaf_picture: Some(pic),
+            consumed: PhantomData,
         })
     }
 
     /// This method is intended to be used when `self` is passed to a function that calls `vmaf_picture_unref` internally  
     /// Notably, `vmaf_read_pictures` does this
-    pub fn consume(self) -> () {
-        self.consumed.set(true);
+    pub fn consume(self) -> Picture<Consumed> {
+        Picture {
+            vmaf_picture: None,
+            consumed: PhantomData,
+        }
     }
 }
 
@@ -125,19 +134,19 @@ impl TryFrom<VideoFrame> for Picture {
     }
 }
 
-impl AsPtr for Picture {
+impl AsPtr for Picture<ValidRef> {
     type Raw = VmafPicture;
 
     fn as_ptr(&self) -> *const Self::Raw {
-        self.vmaf_picture
+        self.vmaf_picture.unwrap()
     }
 }
 
-impl IntoRaw for Picture {
+impl IntoRaw for Picture<ValidRef> {
     type Raw = VmafPicture;
 
     fn into_raw(self) -> *mut Self::Raw {
-        self.vmaf_picture
+        self.vmaf_picture.unwrap()
     }
 }
 
@@ -147,23 +156,22 @@ impl FromRaw<VmafPicture> for Picture {
     /// cause a double free, as `vmaf_picture_unref` will be called twice!
     unsafe fn from_raw(raw: *mut VmafPicture) -> Self {
         Self {
-            vmaf_picture: raw,
-            consumed: Cell::new(false),
+            vmaf_picture: Some(raw),
+            consumed: PhantomData,
         }
     }
 }
 
-impl Drop for Picture {
+impl<T: Consumable> Drop for Picture<T> {
     fn drop(&mut self) {
         // Allow FFI code to free its memory
 
-        if self.consumed.get() == false {
-            unsafe {
-                vmaf_picture_unref(self.vmaf_picture);
-            }
-        }
-        unsafe {
-            libc::free(self.vmaf_picture as *mut c_void);
+        match self.vmaf_picture {
+            Some(ptr) => unsafe {
+                vmaf_picture_unref(ptr);
+                libc::free(ptr as *mut c_void);
+            },
+            None => (),
         }
     }
 }

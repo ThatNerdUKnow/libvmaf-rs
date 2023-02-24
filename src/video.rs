@@ -1,4 +1,4 @@
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use ffmpeg_next::{
     codec::context::Context as Codec,
     codec::decoder::Video as VideoDecoder,

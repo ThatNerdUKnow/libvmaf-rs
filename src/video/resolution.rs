@@ -1,4 +1,3 @@
-use super::error::VideoError;
 use error_stack::{IntoReport, Result};
 use std::{fmt::Display, num::TryFromIntError};
 
