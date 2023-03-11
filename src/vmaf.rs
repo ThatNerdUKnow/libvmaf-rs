@@ -61,7 +61,7 @@ impl Vmaf {
         I: GetResolution
             + ExactSizeIterator
             + Iterator<Item = impl TryInto<Picture, Error = Report<PictureError>>>,
-        F: Fn(VmafStatus) -> (),
+        F: Fn(VmafStatus),
     >(
         mut self,
         reference: I,
@@ -211,8 +211,8 @@ mod test {
         )
         .expect("Recieved error code from constructor");
 
-        let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
-        let distorted: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
+        let reference: Video = Video::new("./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
+        let distorted: Video = Video::new("./video/Big Buck Bunny 720P.m4v", 1920, 1080).unwrap();
         let config = ModelConfig::default();
         let _model: Model = Model::new(config, "vmaf_v0.6.1".to_string()).unwrap();
 

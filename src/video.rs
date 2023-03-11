@@ -132,6 +132,10 @@ impl Iterator for Video {
             .map(|(_stream, packet)| packet);
 
         for packet in packets {
+
+            // Disable this lint because decoder.send_packet has side effects the 
+            // compiler doesn't know about
+            #[allow(clippy::never_loop)]
             while self.decoder.send_packet(&packet)
                 != Err(AVError::Other {
                     errno: libc::EAGAIN,
@@ -139,6 +143,7 @@ impl Iterator for Video {
             {
                 break;
             }
+
 
             // Allocate an empty frame for our decoder to use
             // the relationship of packet to frame is not 1:1, so
@@ -148,7 +153,7 @@ impl Iterator for Video {
                 Ok(_) => {
                     let mut scaled_frame = VideoFrame::empty();
                     self.scaler.run(&frame, &mut scaled_frame).unwrap();
-                    self.number_of_frames = self.number_of_frames - 1;
+                    self.number_of_frames -= 1;
                     assert!(self.number_of_frames >= 0);
                     return Some(scaled_frame);
                 }
@@ -184,9 +189,9 @@ mod test {
     fn iterate() {
         let path = Path::new("./video/Big Buck Bunny 720P.m4v");
 
-        let vid: Video = Video::new(&path, 1920, 1080).unwrap();
+        let vid: Video = Video::new(path, 1920, 1080).unwrap();
 
-        for _frame in vid.into_iter() {
+        for _frame in vid {
             // Do nothing
             let _picture: Picture = _frame.try_into().unwrap();
         }

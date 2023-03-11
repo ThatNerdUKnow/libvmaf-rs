@@ -8,8 +8,8 @@ use libvmaf_rs::{
 fn main() {
     let vmaf = Vmaf::default();
 
-    let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1280, 720).unwrap();
-    let distorted: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1280, 720).unwrap();
+    let reference: Video = Video::new("./video/Big Buck Bunny 720P.m4v", 1280, 720).unwrap();
+    let distorted: Video = Video::new("./video/Big Buck Bunny 720P.m4v", 1280, 720).unwrap();
 
     let num_frames = reference.len();
 

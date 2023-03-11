@@ -36,7 +36,7 @@ impl Vmaf{
 
     pub fn finish_reading_pictures(&mut self) -> Result<(), FFIError> {
         let null: *mut VmafPicture = ptr::null_mut();
-        let err = unsafe { vmaf_read_pictures(self.0, null.clone(), null.clone(), 0) };
+        let err = unsafe { vmaf_read_pictures(self.0, null, null, 0) };
 
         FFIError::check_err(err)
     }
