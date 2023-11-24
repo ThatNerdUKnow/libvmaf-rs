@@ -13,8 +13,7 @@ fn main() {
 
     let num_frames = reference.len();
 
-    let model_config = ModelConfig::default();
-    let model = Model::new(model_config, String::from("vmaf_v0.6.1")).unwrap();
+    let model = Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
 
     let style =
         ProgressStyle::with_template("{prefix}: {eta_precise} {wide_bar} [{pos}/{len}]").unwrap();

@@ -19,8 +19,8 @@ pub enum VmafError {
     #[error("Couldn't construct a vmafcontext")]
     Construct,
     /// There was a problem using the feature extractors required by a model
-    #[error("Couldn't use features from model {0}")]
-    Feature(String),
+    #[error("Couldn't use features from model {0:?}")]
+    Feature(Option<String>),
     /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
     #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
     FrameCount(usize, usize),

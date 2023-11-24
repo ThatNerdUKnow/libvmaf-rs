@@ -26,15 +26,14 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'libvmaf-rs'",
+            "name": "Debug get_vmaf_scores",
             "cargo": {
                 "args": [
-                    "build",
-                    "--bin=libvmaf-rs",
-                    "--package=libvmaf-rs"
+                    "run",
+                    "--example=get_vmaf_scores",
                 ],
                 "filter": {
-                    "name": "libvmaf-rs",
+                    "name": "get_vmaf_scores",
                     "kind": "bin"
                 }
             },
