@@ -11,7 +11,7 @@ repository = "https://github.com/ThatNerdUKnow/libvmaf-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-"libvmaf-sys" = { path="../libvmaf-sys" }
+"libvmaf-sys" = { version = "0.4.0"}
 "errno" = "0.2.8"
 "libc" = "0.2.137"
 ffmpeg-next = { version = "6.0.0" }

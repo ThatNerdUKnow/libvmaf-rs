@@ -1,20 +1,20 @@
 use std::ptr;
 
-use crate::{error::FFIError, model::Model, picture::Picture};
-use error_stack::Result;
-use libvmaf_sys::{
-    vmaf_read_pictures, vmaf_score_at_index, vmaf_use_features_from_model, VmafModel, VmafPicture,
-};
+use crate::{error::FFIError, picture::Picture};
+use libvmaf_sys::{vmaf_read_pictures, VmafPicture};
 use ptrplus::AsPtr;
 
 use super::Vmaf;
 
 impl Vmaf {
+    /*
     pub(super) fn use_features_from_model(&mut self, model: &Model) -> Result<(), FFIError> {
         let err = unsafe { vmaf_use_features_from_model(self.0, model.as_ptr() as *mut VmafModel) };
 
         FFIError::check_err(err)
     }
+    */
+
     pub(super) fn read_pictures(
         &mut self,
         reference: Picture,
@@ -46,6 +46,7 @@ impl Vmaf {
         FFIError::check_err(err)
     }
 
+    /*
     pub(super) fn get_score_at_index(&mut self, model: &Model, index: u32) -> Result<f64, FFIError> {
         let mut score: f64 = 0.0;
 
@@ -61,5 +62,5 @@ impl Vmaf {
         FFIError::check_err(err)?;
 
         Ok(score)
-    }
+    }*/
 }

@@ -42,7 +42,7 @@ impl Picture {
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bits_per_channel, width, height) };
 
         // Return an error if vmaf_picture_alloc returned an error code
-        FFIError::check_err(err).change_context(PictureError::Construct)?;
+        FFIError::check_err(err).map_err(|e| PictureError::Construct)?;
 
         Ok(Picture {
             vmaf_picture: Some(pic),

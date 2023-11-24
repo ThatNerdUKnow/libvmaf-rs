@@ -10,7 +10,7 @@ pub mod picture;
 pub mod vmaf;
 
 /// Module concerned with loading VMAFModels
-pub mod model;
+//pub mod model;
 
 /// Utility module, get versions of VMAF and FFMPEG here
 pub mod utils;
@@ -20,3 +20,5 @@ pub mod video;
 
 /// FFI Error types
 pub mod error;
+
+pub mod scoring;

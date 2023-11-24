@@ -1,10 +1,9 @@
 use self::error::VmafError;
 use self::status::VmafStatus;
+use crate::picture::Picture;
 use crate::picture::ValidRef;
 use crate::video::resolution::GetResolution;
 use crate::{error::FFIError, picture::error::PictureError};
-use crate::{model::Model, picture::Picture};
-use error_stack::{bail, Report, Result, ResultExt};
 use libvmaf_sys::{vmaf_close, vmaf_init, VmafConfiguration, VmafContext};
 /// Re-export of Vmaf Log levels from `libvmaf-sys`
 pub use libvmaf_sys::{VmafLogLevel, VmafModel};
