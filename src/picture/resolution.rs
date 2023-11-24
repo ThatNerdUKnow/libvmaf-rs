@@ -1,4 +1,3 @@
-use error_stack::{IntoReport, Result};
 use std::{fmt::Display, num::TryFromIntError};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -9,8 +8,8 @@ pub struct Resolution {
 
 impl Resolution {
     pub fn new(w: u32, h: u32) -> Result<Resolution, TryFromIntError> {
-        let w: usize = w.try_into().into_report()?;
-        let h: usize = h.try_into().into_report()?;
+        let w: usize = w.try_into()?;
+        let h: usize = h.try_into()?;
         Ok(Resolution {
             width: w,
             height: h,

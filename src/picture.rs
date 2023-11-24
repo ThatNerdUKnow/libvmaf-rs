@@ -1,5 +1,4 @@
 use error_stack::{Report, Result, ResultExt};
-use ffmpeg_next::{format::Pixel, frame::Video as VideoFrame};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
@@ -9,6 +8,7 @@ use std::{ffi::c_uint, marker::PhantomData, mem};
 use crate::{error::FFIError, picture::error::PictureError};
 
 pub mod error;
+pub mod resolution;
 /// A safe wrapper around `*mut VmafPicture`
 ///
 /// Unless you're trying to use a library besides FFMPEG for decoding video,
@@ -60,6 +60,7 @@ impl Picture {
     }
 }
 
+#[cfg(feature="ffmpeg")]
 impl TryFrom<VideoFrame> for Picture {
     type Error = Report<PictureError>;
 

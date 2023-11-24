@@ -1,7 +1,7 @@
 use errno::Errno;
 use thiserror::Error;
 
-use crate::video::resolution::Resolution;
+use crate::picture::resolution::Resolution;
 
 /// An enum of every possible error calculating a Vmaf Score
 #[derive(Error, Debug)]

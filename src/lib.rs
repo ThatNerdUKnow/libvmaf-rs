@@ -16,6 +16,7 @@ pub mod vmaf;
 pub mod utils;
 
 /// This module is concerned with decoding video files into YUV format
+#[cfg(feature="ffmpeg")]
 pub mod video;
 
 /// FFI Error types

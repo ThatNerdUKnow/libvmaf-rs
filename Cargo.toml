@@ -11,10 +11,10 @@ repository = "https://github.com/ThatNerdUKnow/libvmaf-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-"libvmaf-sys" = { version = "0.4.0"}
+"libvmaf-sys" = { version = "0.4.0" }
 "errno" = "0.2.8"
 "libc" = "0.2.137"
-ffmpeg-next = { version = "6.0.0" }
+ffmpeg-next = { version = "6.0.0", optional = true }
 num_cpus = "1.14.0"
 thiserror = "1.0.37"
 error-stack = { version = "0.2.4", features = ["anyhow"] }
@@ -27,7 +27,8 @@ indicatif = "0.17.3"
 lto = true
 
 [features]
+ffmpeg = ["dep:ffmpeg-next"]
 float = ["libvmaf-sys/float"]
 avx512 = ["libvmaf-sys/avx512"]
-ffmpeg-build = ["ffmpeg-next/build"]
-ffmpeg-static = ["ffmpeg-next/static"]
+ffmpeg-build = ["ffmpeg-next/build", "ffmpeg"]
+ffmpeg-static = ["ffmpeg-next/static", "ffmpeg"]
