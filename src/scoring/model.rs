@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     error::FFIError,
-    vmaf::{GetScores, LoadModel, ReadFrames, Vmaf2},
+    vmaf::{GetScores, ReadFrames, Vmaf2},
 };
 
 use super::{config::ModelConfig, error::ModelError, VmafScoring, VmafScoringError};
@@ -99,7 +99,7 @@ impl TryFrom<Box<dyn AsRef<Path>>> for Model {
 }
 
 impl VmafScoring for Model {
-    fn load(&self, vmaf_context: &mut Vmaf2<LoadModel>) -> Result<(), VmafScoringError> {
+    fn load(&self, vmaf_context: &mut Vmaf2<ReadFrames>) -> Result<(), VmafScoringError> {
         let error = unsafe { vmaf_use_features_from_model(**vmaf_context, self.0) };
 
         FFIError::check_err(error).map_err(|e| VmafScoringError::Load(self.1.clone()))?;

@@ -1,7 +1,7 @@
 use libvmaf_sys::VmafPoolingMethod;
 use thiserror::Error;
 
-use crate::vmaf::{GetScores, LoadModel, ReadFrames, Vmaf2};
+use crate::vmaf::{GetScores, ReadFrames, Vmaf2};
 
 pub mod config;
 pub mod error;
@@ -9,7 +9,7 @@ pub mod model;
 
 /// This trait represents loading a Model or ModelCollection into the VMAF context and getting the score out of the context
 pub trait VmafScoring {
-    fn load(&self, vmaf_context: &mut Vmaf2<LoadModel>) -> Result<(), VmafScoringError>;
+    fn load(&self, vmaf_context: &mut Vmaf2<ReadFrames>) -> Result<(), VmafScoringError>;
 
     fn get_score_pooled(
         &self,

@@ -3,6 +3,7 @@ use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr,
+    rc::Rc,
 };
 
 use libvmaf_sys::{
@@ -22,11 +23,9 @@ pub mod error;
 
 pub struct Vmaf2<T: VmafState> {
     context: *mut VmafContext,
-    model: Option<Box<dyn VmafScoring>>,
+    model: Rc<dyn VmafScoring>,
     state: PhantomData<T>,
 }
-
-pub struct LoadModel;
 
 pub struct ReadFrames;
 
@@ -34,7 +33,6 @@ pub struct GetScores;
 
 pub trait VmafState {}
 
-impl VmafState for LoadModel {}
 impl VmafState for ReadFrames {}
 impl VmafState for GetScores {}
 
@@ -44,7 +42,8 @@ impl<T: VmafState> Vmaf2<T> {
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
-    ) -> Result<Vmaf2<LoadModel>, VmafError> {
+        model: Rc<Model>
+    ) -> Result<Vmaf2<ReadFrames>, VmafError> {
         let config = VmafConfiguration {
             log_level,
             n_threads,
@@ -56,9 +55,9 @@ impl<T: VmafState> Vmaf2<T> {
 
         debug_assert!(ctx.is_null());
 
-        let mut vmaf: Vmaf2<LoadModel> = Vmaf2 {
+        let mut vmaf: Vmaf2<ReadFrames> = Vmaf2 {
             context: ctx,
-            model: None,
+            model: model.clone(),
             state: PhantomData::default(),
         };
 
@@ -66,22 +65,9 @@ impl<T: VmafState> Vmaf2<T> {
 
         FFIError::check_err(err).map_err(|e| VmafError::Construct)?;
 
+        vmaf.model.clone().load(&mut vmaf)?;
+
         Ok(vmaf)
-    }
-}
-
-impl Vmaf2<LoadModel> {
-    pub fn load_model(
-        &mut self,
-        model: impl VmafScoring + 'static,
-    ) -> Result<Vmaf2<ReadFrames>, VmafError> {
-        model.load(self)?;
-
-        Ok(Vmaf2 {
-            context: self.context,
-            model: Some(Box::new(model)),
-            state: PhantomData::<ReadFrames>,
-        })
     }
 }
 
@@ -124,7 +110,7 @@ impl Vmaf2<ReadFrames> {
 
         return Ok(Vmaf2 {
             context: self.context,
-            model: self.model,
+            model: self.model.clone(),
             state: PhantomData,
         });
     }
