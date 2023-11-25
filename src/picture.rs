@@ -7,6 +7,8 @@ use std::{ffi::c_uint, marker::PhantomData, mem};
 
 use crate::{error::FFIError, picture::error::PictureError};
 
+use self::resolution::{GetResolution, Resolution};
+
 pub mod error;
 pub mod resolution;
 /// A safe wrapper around `*mut VmafPicture`
@@ -16,6 +18,7 @@ pub mod resolution;
 pub struct Picture<State: Consumable = ValidRef> {
     vmaf_picture: Option<*mut VmafPicture>,
     consumed: PhantomData<State>,
+    resolution: Resolution,
 }
 
 pub struct ValidRef;
@@ -47,6 +50,10 @@ impl Picture {
         Ok(Picture {
             vmaf_picture: Some(pic),
             consumed: PhantomData,
+            resolution: Resolution {
+                width: width as usize,
+                height: height as usize,
+            },
         })
     }
 
@@ -56,11 +63,21 @@ impl Picture {
         Picture {
             vmaf_picture: None,
             consumed: PhantomData,
+            resolution: Resolution {
+                width: 0,
+                height: 0,
+            },
         }
     }
 }
 
-#[cfg(feature="ffmpeg")]
+impl GetResolution for Picture {
+    fn get_resolution(&self) -> &resolution::Resolution {
+        &self.resolution
+    }
+}
+
+#[cfg(feature = "ffmpeg")]
 impl TryFrom<VideoFrame> for Picture {
     type Error = Report<PictureError>;
 
@@ -159,6 +176,10 @@ impl FromRaw<VmafPicture> for Picture {
         Self {
             vmaf_picture: Some(raw),
             consumed: PhantomData,
+            resolution: Resolution {
+                width: 0,
+                height: 0,
+            },
         }
     }
 }

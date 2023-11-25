@@ -1,14 +1,13 @@
 use errno::Errno;
 use thiserror::Error;
 
-use crate::picture::resolution::Resolution;
+use crate::{error::FFIError, picture::resolution::Resolution, scoring::VmafScoringError};
 
 /// An enum of every possible error calculating a Vmaf Score
 #[derive(Error, Debug)]
 pub enum VmafError {
-    /// There was a problem reading frame data
-    #[error("Couldn't read VmafPicture {0:?}")]
-    ReadFrame(Errno),
+    #[error("There was a problem calling libvmaf")]
+    FFI(#[from] FFIError),
     /// There was a problem clearing the buffers of feature extractors
     #[error("Couldn't clear feature extractor buffers")]
     ClearFrame,
@@ -18,16 +17,12 @@ pub enum VmafError {
     /// There was a problem constructing a Vmaf Context
     #[error("Couldn't construct a vmafcontext")]
     Construct,
-    /// There was a problem using the feature extractors required by a model
-    #[error("Couldn't use features from model {0:?}")]
-    Feature(Option<String>),
     /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
     #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
-    FrameCount(usize, usize),
+    MismatchedFrameCount(usize, usize),
     /// The two `Video`'s provided had mismatching resolutions
     #[error("Mismatched resolutions: Reference: {0} Distorted: {1}")]
-    Resolution(Resolution, Resolution),
-    /// Something else went wrong when computing VMAF scores
-    #[error("Couldn't run VMAF")]
-    Other,
+    MismatchedResolution(Resolution, Resolution),
+    #[error("There was a problem with the VMAF Model")]
+    Model(#[from] VmafScoringError),
 }

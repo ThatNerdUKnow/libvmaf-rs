@@ -9,7 +9,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{error::FFIError, vmaf::Vmaf};
+use crate::{
+    error::FFIError,
+    vmaf::{GetScores, LoadModel, ReadFrames, Vmaf2},
+};
 
 use super::{config::ModelConfig, error::ModelError, VmafScoring, VmafScoringError};
 
@@ -26,7 +29,7 @@ impl Model {
         let version_ptr: *const c_char = version_cstring.as_ptr() as *const c_char;
         let err = unsafe { vmaf_model_load(&mut ptr, &mut config, version_ptr) };
 
-        FFIError::check_err(err).map_err(|e| ModelError::Load(version));
+        FFIError::check_err(err).map_err(|e| ModelError::Load(version.clone()));
 
         Ok(Model(ptr, version))
     }
@@ -96,17 +99,16 @@ impl TryFrom<Box<dyn AsRef<Path>>> for Model {
 }
 
 impl VmafScoring for Model {
-    fn load(&self, vmaf_context: &mut Vmaf) -> Result<(), VmafScoringError> {
+    fn load(&self, vmaf_context: &mut Vmaf2<LoadModel>) -> Result<(), VmafScoringError> {
         let error = unsafe { vmaf_use_features_from_model(**vmaf_context, self.0) };
 
-        FFIError::check_err(error).map_err(|e| VmafScoringError::Load(self.1))?;
-
+        FFIError::check_err(error).map_err(|e| VmafScoringError::Load(self.1.clone()))?;
         Ok(())
     }
 
     fn get_score_pooled(
         &self,
-        vmaf_context: &Vmaf,
+        vmaf_context: &Vmaf2<GetScores>,
         pool_method: VmafPoolingMethod,
         index_low: u32,
         index_high: u32,
@@ -124,17 +126,22 @@ impl VmafScoring for Model {
             )
         };
 
-        FFIError::check_err(error).map_err(|e| VmafScoringError::GetScore(self.1))?;
+        FFIError::check_err(error).map_err(|e| VmafScoringError::GetScore(self.1.clone()))?;
 
         Ok(score)
     }
 
-    fn get_score_at_index(&self, vmaf_context: &Vmaf, index: u32) -> Result<f64, VmafScoringError> {
+    fn get_score_at_index(
+        &self,
+        vmaf_context: &Vmaf2<GetScores>,
+        index: u32,
+    ) -> Result<f64, VmafScoringError> {
         let mut score: f64 = f64::default();
 
         let error = unsafe { vmaf_score_at_index(**vmaf_context, self.0, &mut score, index) };
 
-        FFIError::check_err(error).map_err(|e| VmafScoringError::GetScoreIndex(self.1, index))?;
+        FFIError::check_err(error)
+            .map_err(|e| VmafScoringError::GetScoreIndex(self.1.clone(), index))?;
 
         Ok(score)
     }

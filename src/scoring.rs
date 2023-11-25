@@ -1,27 +1,29 @@
-use std::path::Path;
-
 use libvmaf_sys::VmafPoolingMethod;
 use thiserror::Error;
 
-use crate::vmaf::Vmaf;
+use crate::vmaf::{GetScores, LoadModel, ReadFrames, Vmaf2};
 
 pub mod config;
 pub mod error;
 pub mod model;
 
 /// This trait represents loading a Model or ModelCollection into the VMAF context and getting the score out of the context
-pub trait VmafScoring: TryFrom<Box<dyn AsRef<Path>>> {
-    fn load(&self, vmaf_context: &mut Vmaf) -> Result<(), VmafScoringError>;
+pub trait VmafScoring {
+    fn load(&self, vmaf_context: &mut Vmaf2<LoadModel>) -> Result<(), VmafScoringError>;
 
     fn get_score_pooled(
         &self,
-        vmaf_context: &Vmaf,
+        vmaf_context: &Vmaf2<GetScores>,
         pool_method: VmafPoolingMethod,
         index_low: u32,
         index_high: u32,
     ) -> Result<f64, VmafScoringError>;
 
-    fn get_score_at_index(&self, vmaf_context: &Vmaf, index: u32) -> Result<f64, VmafScoringError>;
+    fn get_score_at_index(
+        &self,
+        vmaf_context: &Vmaf2<GetScores>,
+        index: u32,
+    ) -> Result<f64, VmafScoringError>;
 }
 
 #[derive(Error, Debug)]
