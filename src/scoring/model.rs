@@ -47,12 +47,12 @@ impl Model {
         let mut config = config.as_ref().to_owned();
 
         let path: &Path = (*path).as_ref();
-        let path_ptr = CString::new(path.as_os_str().as_encoded_bytes())
+        let path_ptr = CString::new(path.as_os_str().to_string_lossy().as_bytes())
             .map_err(|e| ModelError::Path(Box::new(path.to_path_buf())))?;
 
         let err = unsafe { vmaf_model_load_from_path(&mut ptr, &mut config, path_ptr.as_ptr()) };
 
-        FFIError::check_err(err).map_err(|e| ModelError::Load(format!("{e}")));
+        FFIError::check_err(err).map_err(|e| ModelError::Load(format!("{e}")))?;
 
         Ok(Model(ptr, path.to_string_lossy().into()))
     }

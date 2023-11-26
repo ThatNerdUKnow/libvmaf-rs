@@ -1,12 +1,4 @@
-use indicatif::{ProgressBar, ProgressStyle};
-use libvmaf_rs::{
-    model::{config::ModelConfig, Model},
-    video::Video,
-    vmaf::{status::VmafStatus, Vmaf},
-};
-
 fn main() {
-    let vmaf = Vmaf::default();
 
     let reference: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1280, 720).unwrap();
     let distorted: Video = Video::new(&"./video/Big Buck Bunny 720P.m4v", 1280, 720).unwrap();
@@ -14,6 +6,8 @@ fn main() {
     let num_frames = reference.len();
 
     let model = Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
+
+    let vmaf = Vmaf2::new();
 
     let style =
         ProgressStyle::with_template("{prefix}: {eta_precise} {wide_bar} [{pos}/{len}]").unwrap();

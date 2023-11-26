@@ -27,6 +27,7 @@ indicatif = "0.17.3"
 lto = true
 
 [features]
+default = ["ffmpeg"]
 ffmpeg = ["dep:ffmpeg-next"]
 float = ["libvmaf-sys/float"]
 avx512 = ["libvmaf-sys/avx512"]
