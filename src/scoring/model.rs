@@ -40,13 +40,13 @@ impl Model {
 
     pub fn load_model(
         config: ModelConfig,
-        path: Box<dyn AsRef<Path>>,
+        path: impl AsRef<Path>,
     ) -> core::result::Result<Model, ModelError> {
         let mut ptr: *mut VmafModel = std::ptr::null_mut();
 
         let mut config = config.as_ref().to_owned();
 
-        let path: &Path = (*path).as_ref();
+        let path: &Path = path.as_ref();
         let path_ptr = CString::new(path.as_os_str().to_string_lossy().as_bytes())
             .map_err(|e| ModelError::Path(Box::new(path.to_path_buf())))?;
 
@@ -90,13 +90,14 @@ impl Drop for Model {
     }
 }
 
+/*
 impl TryFrom<Box<dyn AsRef<Path>>> for Model {
     type Error = ModelError;
 
     fn try_from(path: Box<dyn AsRef<Path>>) -> core::result::Result<Self, Self::Error> {
-        Model::load_model(Default::default(), path)
+        Model::load_model(Default::default(), *path)
     }
-}
+}*/
 
 impl VmafScoring for Model {
     fn load(&self, vmaf_context: &mut Vmaf2<ReadFrames>) -> Result<(), VmafScoringError> {

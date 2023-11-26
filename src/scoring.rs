@@ -1,4 +1,5 @@
 use libvmaf_sys::VmafPoolingMethod;
+use ptrplus::AsPtr;
 use thiserror::Error;
 
 use crate::vmaf::{GetScores, ReadFrames, Vmaf2};

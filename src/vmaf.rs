@@ -7,8 +7,8 @@ use std::{
 };
 
 use libvmaf_sys::{
-    vmaf_close, vmaf_init, vmaf_read_pictures, VmafConfiguration, VmafContext, VmafLogLevel,
-    VmafPicture,
+    vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_score_at_index, VmafConfiguration, VmafContext,
+    VmafLogLevel, VmafModel, VmafPicture, VmafPoolingMethod,
 };
 use ptrplus::AsPtr;
 
@@ -42,7 +42,7 @@ impl<T: VmafState> Vmaf2<T> {
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
-        model: Rc<Model>
+        model: Rc<Model>,
     ) -> Result<Vmaf2<ReadFrames>, VmafError> {
         let config = VmafConfiguration {
             log_level,
@@ -113,6 +113,27 @@ impl Vmaf2<ReadFrames> {
             model: self.model.clone(),
             state: PhantomData,
         });
+    }
+}
+
+impl Vmaf2<GetScores> {
+    pub fn get_score_at_index(&self, index: u32) -> Result<f64, VmafError> {
+        let score = self.model.clone().get_score_at_index(self, index)?;
+
+        Ok(score)
+    }
+
+    pub fn get_score_pooled(
+        &self,
+        pool_method: VmafPoolingMethod,
+        index_low: u32,
+        index_high: u32,
+    ) -> Result<f64, VmafError> {
+        let score =
+            self.model
+                .clone()
+                .get_score_pooled(self, pool_method, index_low, index_high)?;
+        Ok(score)
     }
 }
 
