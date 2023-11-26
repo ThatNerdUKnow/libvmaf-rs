@@ -9,4 +9,6 @@ pub enum PictureError {
     /// There was a problem decoding a picture
     #[error("Encountered a problem when trying to decode video")]
     Decode,
+    #[error("Encountered a problem when trying to copy frame data")]
+    Copy
 }

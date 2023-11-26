@@ -1,4 +1,4 @@
-use error_stack::{Report, Result, ResultExt};
+use ffmpeg_next::{format::Pixel, frame::Video};
 use libc::{self, c_void, memcpy};
 pub use libvmaf_sys::VmafPixelFormat;
 use libvmaf_sys::{vmaf_picture_alloc, vmaf_picture_unref, VmafPicture};
@@ -78,10 +78,10 @@ impl GetResolution for Picture {
 }
 
 #[cfg(feature = "ffmpeg")]
-impl TryFrom<VideoFrame> for Picture {
-    type Error = Report<PictureError>;
+impl TryFrom<Video> for Picture {
+    type Error = PictureError;
 
-    fn try_from(frame: VideoFrame) -> core::result::Result<Self, Self::Error> {
+    fn try_from(frame: Video) -> core::result::Result<Self, Self::Error> {
         // Get pixel format
         let format = match frame.format() {
             Pixel::YUV420P | Pixel::YUV420P10LE | Pixel::YUV420P12LE | Pixel::YUV420P16LE => {
@@ -102,10 +102,7 @@ impl TryFrom<VideoFrame> for Picture {
             Pixel::YUV420P10LE | Pixel::YUV422P10LE | Pixel::YUV444P10LE => 10,
             Pixel::YUV420P12LE | Pixel::YUV422P12LE | Pixel::YUV444P12LE => 12,
             Pixel::YUV420P16LE | Pixel::YUV422P16LE | Pixel::YUV444P16LE => 16,
-            _ => {
-                return Err(Report::new(PictureError::Decode)
-                    .attach_printable(format!("{:?}", frame.format())))
-            }
+            _ => return Err(PictureError::Decode),
         };
 
         let picture = Picture::new(format, bits_per_channel, frame.width(), frame.height())?;
@@ -118,12 +115,6 @@ impl TryFrom<VideoFrame> for Picture {
             _ => 2,
         };
 
-        let conversion_handler = |e| {
-            Err(Report::new(e)
-                .change_context(PictureError::Decode)
-                .attach_printable("When copying pixel data"))
-        };
-
         unsafe {
             for i in 0..3 {
                 let mut src_data: *const c_void = (*src).data[i] as *const c_void;
@@ -134,12 +125,12 @@ impl TryFrom<VideoFrame> for Picture {
 
                     let linesize_src = match (*src).linesize[i].try_into() {
                         Ok(n) => n,
-                        Err(e) => return conversion_handler(e).attach_printable("src"),
+                        Err(e) => return Err(PictureError::Copy),
                     };
 
                     let linesize_dst = match (*dst).stride[i].try_into() {
                         Ok(n) => n,
-                        Err(e) => return conversion_handler(e).attach_printable("dst"),
+                        Err(e) => return Err(PictureError::Copy),
                     };
 
                     src_data = src_data.add(linesize_src);

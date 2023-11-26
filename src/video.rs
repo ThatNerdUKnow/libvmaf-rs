@@ -1,4 +1,3 @@
-use error_stack::{IntoReport, Result, ResultExt};
 use ffmpeg_next::{
     codec::context::Context as Codec,
     codec::decoder::Video as VideoDecoder,
@@ -12,13 +11,11 @@ use ffmpeg_next::{
 };
 use std::path::Path;
 
-use self::{
-    error::VideoError,
-    resolution::{GetResolution, Resolution},
-};
+use crate::picture::resolution::{GetResolution, Resolution};
+
+use self::error::VideoError;
 
 pub mod error;
-pub mod resolution;
 
 /// This struct represents a Video context. It contains the input file, decoder, and software scaler  
 /// This struct implements `Iterator<Item = VideoFrame>`, or, an iterator of frames
@@ -42,37 +39,25 @@ impl Video {
     /// set w and h to your desired resolution and
     pub fn new<P: AsRef<Path>>(path: P, w: u32, h: u32) -> Result<Video, VideoError> {
         // To tell the truth I have no idea what this does
-        ffmpeg_next::init()
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+        ffmpeg_next::init()?;
 
         // Create format context from path
-        let input = input(&path)
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+        let input = input(&path)?;
 
         // Get index of best video stream
         let input_stream: Stream = input
             .streams()
             .best(Type::Video)
-            .ok_or(AVError::StreamNotFound)
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+            .ok_or(AVError::StreamNotFound)?;
 
         let number_of_frames = input_stream.frames();
 
         let video_index = input_stream.index();
 
         // Instantiate an appropriate decoder for the input stream
-        let context_decoder = Codec::from_parameters(input_stream.parameters())
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+        let context_decoder = Codec::from_parameters(input_stream.parameters())?;
 
-        let mut decoder = context_decoder
-            .decoder()
-            .video()
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
+        let mut decoder = context_decoder.decoder().video()?;
 
         let mut threading_config = decoder.threading();
         threading_config.count = num_cpus::get();
@@ -80,25 +65,13 @@ impl Video {
 
         decoder.set_threading(threading_config);
 
-        // Guard against attempting to construct a scaler with unknown pixel format and zero size frame
-        match (decoder.format(), decoder.width(), decoder.height()) {
-            (_, 0, _) => {
-                return Err(VideoError::Resolution(
-                    Resolution::new(decoder.width(), decoder.height())
-                        .change_context(VideoError::Construct(path.as_ref().to_owned()))?,
-                )
-                .into())
-            }
-            (_, _, 0) => {
-                return Err(VideoError::Resolution(
-                    Resolution::new(decoder.width(), decoder.height())
-                        .change_context(VideoError::Construct(path.as_ref().to_owned()))?,
-                )
-                .into())
-            }
-            (Pixel::None, _, _) => return Err(VideoError::Format(decoder.format()).into()),
-            _ => (),
-        };
+        // Guard against trying to construct a scaler with zero dimension resolution;
+        let resolution = Resolution::new(w, h)?;
+
+        // Guard against attempting to construct a scaler with unknown pixel format
+        if decoder.format() == Pixel::None {
+            return Err(VideoError::Format(decoder.format()));
+        }
 
         let scaler = Scaler::get(
             decoder.format(),
@@ -108,21 +81,7 @@ impl Video {
             w,
             h,
             scaling::Flags::BILINEAR,
-        )
-        .into_report()
-        .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
-
-        let width: usize = w
-            .try_into()
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
-
-        let height: usize = h
-            .try_into()
-            .into_report()
-            .change_context(VideoError::Construct(path.as_ref().to_owned()))?;
-
-        let resolution = Resolution { width, height };
+        )?;
 
         Ok(Video {
             input,
@@ -178,11 +137,7 @@ impl Iterator for Video {
         }
 
         // Send eof to decoder so it can clean up
-        self.decoder
-            .send_eof()
-            .into_report()
-            .attach_printable("Encountered error when decoding video")
-            .unwrap();
+        self.decoder.send_eof().expect("Can't send EOF to decoder");
         None
     }
 
