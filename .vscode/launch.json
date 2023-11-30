@@ -26,15 +26,18 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug get_vmaf_scores",
+            "name": "Debug example 'get_vmaf_scores'",
             "cargo": {
                 "args": [
-                    "run",
+                    "build",
                     "--example=get_vmaf_scores",
+                    "--package=libvmaf-rs",
+                    "--features",
+                    "libvmaf-sys/build,libvmaf-sys/static"
                 ],
                 "filter": {
                     "name": "get_vmaf_scores",
-                    "kind": "bin"
+                    "kind": "example"
                 }
             },
             "args": [],
@@ -43,17 +46,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'libvmaf-rs'",
+            "name": "Debug unit tests in example 'get_vmaf_scores'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=libvmaf-rs",
+                    "--example=get_vmaf_scores",
                     "--package=libvmaf-rs"
                 ],
                 "filter": {
-                    "name": "libvmaf-rs",
-                    "kind": "bin"
+                    "name": "get_vmaf_scores",
+                    "kind": "example"
                 }
             },
             "args": [],

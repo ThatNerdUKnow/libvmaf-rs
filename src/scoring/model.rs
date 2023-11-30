@@ -4,15 +4,12 @@ use libvmaf_sys::{
 };
 use ptrplus::{AsPtr, IntoRaw};
 use std::{
-    ffi::{c_char, CString, OsStr},
+    ffi::{c_char, CString},
     fmt::Display,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
-use crate::{
-    error::FFIError,
-    vmaf::{GetScores, ReadFrames, Vmaf2},
-};
+use crate::{error::FFIError, vmaf::Vmaf2};
 
 use super::{config::ModelConfig, error::ModelError, VmafScoring, VmafScoringError};
 
@@ -100,7 +97,7 @@ impl TryFrom<Box<dyn AsRef<Path>>> for Model {
 }*/
 
 impl VmafScoring for Model {
-    fn load(&self, vmaf_context: &mut Vmaf2<ReadFrames>) -> Result<(), VmafScoringError> {
+    fn load(&self, vmaf_context: &mut Vmaf2) -> Result<(), VmafScoringError> {
         let error = unsafe { vmaf_use_features_from_model(**vmaf_context, self.0) };
 
         FFIError::check_err(error).map_err(|e| VmafScoringError::Load(self.1.clone()))?;
@@ -109,7 +106,7 @@ impl VmafScoring for Model {
 
     fn get_score_pooled(
         &self,
-        vmaf_context: &Vmaf2<GetScores>,
+        vmaf_context: &Vmaf2,
         pool_method: VmafPoolingMethod,
         index_low: u32,
         index_high: u32,
@@ -134,7 +131,7 @@ impl VmafScoring for Model {
 
     fn get_score_at_index(
         &self,
-        vmaf_context: &Vmaf2<GetScores>,
+        vmaf_context: &Vmaf2,
         index: u32,
     ) -> Result<f64, VmafScoringError> {
         let mut score: f64 = f64::default();

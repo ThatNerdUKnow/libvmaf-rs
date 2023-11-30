@@ -6,7 +6,7 @@ use libvmaf_rs::{
     picture::Picture,
     scoring::{config::ModelConfig, model::Model},
     video::Video,
-    vmaf::{ReadFrames, Vmaf2},
+    vmaf::Vmaf2,
 };
 use libvmaf_sys::{vmaf_read_pictures, VmafLogLevel};
 
@@ -18,9 +18,14 @@ fn main() {
 
     let model = Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
 
-    let mut vmaf =
-        Vmaf2::<ReadFrames>::new(VmafLogLevel::VMAF_LOG_LEVEL_DEBUG, 1, 0, 1, Rc::new(model))
-            .unwrap();
+    let mut vmaf = Vmaf2::new(
+        VmafLogLevel::VMAF_LOG_LEVEL_DEBUG,
+        num_cpus::get() as u32,
+        0,
+        0,
+        Rc::new(model),
+    )
+    .unwrap();
 
     let style =
         ProgressStyle::with_template("{prefix}: {eta_precise} {wide_bar} [{pos}/{len}]").unwrap();
@@ -48,8 +53,7 @@ fn main() {
         decode_progress.inc(1);
     }
 
-    let vmaf = vmaf
-        .flush_framebuffers()
+    vmaf.flush_framebuffers()
         .expect("Couldn't flush frame buffers");
 
     decode_progress.finish();
