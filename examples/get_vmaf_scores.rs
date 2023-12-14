@@ -3,9 +3,8 @@ use std::env;
 use indicatif::{ProgressBar, ProgressStyle};
 use libvmaf_rs::{
     picture::Picture,
-    scoring::{config::ModelConfig, model::Model},
     video::Video,
-    vmaf::Vmaf2,
+    vmaf::Vmaf2, model::{config::ModelConfig, Model},
 };
 use libvmaf_sys::VmafLogLevel;
 

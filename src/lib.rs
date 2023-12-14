@@ -22,4 +22,4 @@ pub mod video;
 /// FFI Error types
 pub mod error;
 
-pub mod scoring;
+pub mod model;

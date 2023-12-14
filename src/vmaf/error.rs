@@ -1,6 +1,5 @@
 use thiserror::Error;
-
-use crate::{error::FFIError, picture::resolution::Resolution, scoring::VmafScoringError};
+use crate::{error::FFIError, picture::resolution::Resolution};
 
 /// An enum of every possible error calculating a Vmaf Score
 #[derive(Error, Debug)]
@@ -22,6 +21,4 @@ pub enum VmafError {
     /// The two `Video`'s provided had mismatching resolutions
     #[error("Mismatched resolutions: Reference: {0} Distorted: {1}")]
     MismatchedResolution(Resolution, Resolution),
-    #[error("There was a problem with the VMAF Model")]
-    Model(#[from] VmafScoringError),
 }

@@ -1,22 +1,24 @@
 use std::{ops::Deref, ptr};
 
 use libvmaf_sys::{
-    vmaf_close, vmaf_init, vmaf_read_pictures, VmafConfiguration, VmafContext, VmafLogLevel,
-    VmafPicture, VmafPoolingMethod, vmaf_use_features_from_model,
+    vmaf_close, vmaf_init, vmaf_read_pictures, vmaf_use_features_from_model, VmafConfiguration,
+    VmafContext, VmafLogLevel, VmafPicture, VmafPoolingMethod,
 };
 use ptrplus::AsPtr;
 
 use crate::{
     error::FFIError,
+    model::Model,
     picture::{resolution::GetResolution, Picture, ValidRef},
-    scoring::model::Model,
-    vmaf::error::VmafError,
 };
+
+use self::error::VmafError;
+
 
 pub mod error;
 
 pub struct Vmaf2 {
-    context: *mut VmafContext
+    context: *mut VmafContext,
 }
 
 impl Vmaf2 {
@@ -37,9 +39,7 @@ impl Vmaf2 {
 
         debug_assert!(ctx.is_null());
 
-        let mut vmaf: Vmaf2 = Vmaf2 {
-            context: ctx
-        };
+        let mut vmaf: Vmaf2 = Vmaf2 { context: ctx };
 
         let err = unsafe { vmaf_init(&mut vmaf.context, config) };
 
@@ -48,10 +48,8 @@ impl Vmaf2 {
         Ok(vmaf)
     }
 
-    pub fn use_features_from_model(&mut self,model:&mut Model) ->Result<(),VmafError>{
-        let error = unsafe {
-            vmaf_use_features_from_model(self.context, **model)
-        };
+    pub fn use_features_from_model(&mut self, model: &mut Model) -> Result<(), VmafError> {
+        let error = unsafe { vmaf_use_features_from_model(self.context, **model) };
         FFIError::check_err(error)?;
         Ok(())
     }
@@ -94,12 +92,11 @@ impl Vmaf2 {
         Ok(())
     }
 
-    pub fn get_score_at_index(&self,model:&mut Model, index: u32) -> Result<f64, VmafError> {
-        let mut score:f64 = f64::default();
+    pub fn get_score_at_index(&self, model: &mut Model, index: u32) -> Result<f64, VmafError> {
+        let mut score: f64 = f64::default();
 
-        let error = unsafe {
-            libvmaf_sys::vmaf_score_at_index(self.context, **model, &mut score, index)
-        };
+        let error =
+            unsafe { libvmaf_sys::vmaf_score_at_index(self.context, **model, &mut score, index) };
 
         FFIError::check_err(error)?;
 
@@ -116,11 +113,18 @@ impl Vmaf2 {
         let mut score: f64 = f64::default();
 
         let error = unsafe {
-            libvmaf_sys::vmaf_score_pooled(self.context, **model, pool_method, &mut score, index_low, index_high)
+            libvmaf_sys::vmaf_score_pooled(
+                self.context,
+                **model,
+                pool_method,
+                &mut score,
+                index_low,
+                index_high,
+            )
         };
 
         FFIError::check_err(error)?;
-        
+
         Ok(score)
     }
 }
