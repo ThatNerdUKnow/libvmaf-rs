@@ -6,7 +6,8 @@ use ptrplus::{AsPtr, IntoRaw};
 use std::{
     ffi::{c_char, CString},
     fmt::Display,
-    path::Path, ops::{DerefMut, Deref},
+    ops::{Deref, DerefMut},
+    path::Path,
 };
 
 use crate::{error::FFIError, vmaf::Vmaf2};
@@ -26,7 +27,7 @@ impl Model {
         let version_ptr: *const c_char = version_cstring.as_ptr() as *const c_char;
         let err = unsafe { vmaf_model_load(&mut ptr, &mut config, version_ptr) };
 
-        FFIError::check_err(err).map_err(|e| ModelError::Load(version.clone()));
+        FFIError::check_err(err).map_err(|_e| ModelError::Load(version.clone()))?;
 
         Ok(Model(ptr, version))
     }
@@ -45,7 +46,7 @@ impl Model {
 
         let path: &Path = path.as_ref();
         let path_ptr = CString::new(path.as_os_str().to_string_lossy().as_bytes())
-            .map_err(|e| ModelError::Path(Box::new(path.to_path_buf())))?;
+            .map_err(|_e| ModelError::Path(Box::new(path.to_path_buf())))?;
 
         let err = unsafe { vmaf_model_load_from_path(&mut ptr, &mut config, path_ptr.as_ptr()) };
 
@@ -87,7 +88,7 @@ impl Drop for Model {
     }
 }
 
-impl Deref for Model{
+impl Deref for Model {
     type Target = *mut VmafModel;
 
     fn deref(&self) -> &Self::Target {
@@ -95,8 +96,7 @@ impl Deref for Model{
     }
 }
 
-impl DerefMut for Model{
-
+impl DerefMut for Model {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -115,7 +115,7 @@ impl VmafScoring for Model {
     fn load(&self, vmaf_context: &mut Vmaf2) -> Result<(), VmafScoringError> {
         let error = unsafe { vmaf_use_features_from_model(**vmaf_context, self.0) };
 
-        FFIError::check_err(error).map_err(|e| VmafScoringError::Load(self.1.clone()))?;
+        FFIError::check_err(error).map_err(|_e| VmafScoringError::Load(self.1.clone()))?;
         Ok(())
     }
 
@@ -139,7 +139,7 @@ impl VmafScoring for Model {
             )
         };
 
-        FFIError::check_err(error).map_err(|e| VmafScoringError::GetScore(self.1.clone()))?;
+        FFIError::check_err(error).map_err(|_e| VmafScoringError::GetScore(self.1.clone()))?;
 
         Ok(score)
     }
@@ -154,7 +154,7 @@ impl VmafScoring for Model {
         let error = unsafe { vmaf_score_at_index(**vmaf_context, self.0, &mut score, index) };
 
         FFIError::check_err(error)
-            .map_err(|e| VmafScoringError::GetScoreIndex(self.1.clone(), index))?;
+            .map_err(|_e| VmafScoringError::GetScoreIndex(self.1.clone(), index))?;
 
         Ok(score)
     }
