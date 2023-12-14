@@ -2,7 +2,7 @@
 name = "libvmaf-rs"
 license = "GPL-3.0-or-later"
 description = "(WIP) Ergonomic bindings for Netflix's libvmaf"
-version = "0.5.0"
+version = "0.5.1"
 readme = "readme.md"
 edition = "2021"
 authors = ["Brandon Piña"]
@@ -28,6 +28,7 @@ lto = true
 [features]
 default = ["ffmpeg"]
 ffmpeg = ["dep:ffmpeg-next"]
+static = ["libvmaf-sys/static"]
 float = ["libvmaf-sys/float"]
 avx512 = ["libvmaf-sys/avx512"]
 ffmpeg-build = ["ffmpeg-next/build", "ffmpeg"]

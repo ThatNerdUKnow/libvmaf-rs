@@ -23,3 +23,5 @@ pub mod video;
 pub mod error;
 
 pub mod model;
+
+pub use libvmaf_sys;
