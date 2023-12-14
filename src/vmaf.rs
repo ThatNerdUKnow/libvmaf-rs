@@ -88,8 +88,7 @@ impl Vmaf2 {
     }
 
     pub fn flush_framebuffers(&mut self) -> Result<(), VmafError> {
-        let null: *mut VmafPicture = ptr::null_mut();
-        let err = unsafe { vmaf_read_pictures(**self, null.clone(), null.clone(), 0) };
+        let err = unsafe { vmaf_read_pictures(**self, ptr::null_mut(), ptr::null_mut(), 0) };
         FFIError::check_err(err)?;
 
         Ok(())
@@ -120,7 +119,7 @@ impl Vmaf2 {
             libvmaf_sys::vmaf_score_pooled(self.context, **model, pool_method, &mut score, index_low, index_high)
         };
 
-        FFIError::check_err(error);
+        FFIError::check_err(error)?;
         
         Ok(score)
     }

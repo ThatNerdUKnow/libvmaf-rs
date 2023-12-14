@@ -1,4 +1,4 @@
-use std::{env, rc::Rc};
+use std::{env, rc::Rc, vec};
 
 use indicatif::{ProgressBar, ProgressStyle};
 use libvmaf_rs::{
@@ -17,9 +17,9 @@ fn main() {
 
     let num_frames = reference.len();
 
-    let mut model = Model::new(ModelConfig::default(), "vmaf_v0.6.1".to_owned())
-        .expect("Can't load vmaf model");
-    //let model = Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
+    /*let mut model = Model::new(ModelConfig::default(), "vmaf_v0.6.1".to_owned())
+        .expect("Can't load vmaf model");*/
+    let mut model = Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
 
     let mut vmaf = Vmaf2::new(
         VmafLogLevel::VMAF_LOG_LEVEL_DEBUG,
@@ -29,7 +29,7 @@ fn main() {
     )
     .unwrap();
 
-    vmaf.use_features_from_model(&mut model);
+    vmaf.use_features_from_model(&mut model).expect("Can't load model");
 
     let style =
         ProgressStyle::with_template("{prefix}: {eta_precise} {wide_bar} [{pos}/{len}]").unwrap();
@@ -44,37 +44,36 @@ fn main() {
 
     let framepairs = reference.into_iter().zip(distorted.into_iter());
 
-    for (index, (reference, distorted)) in framepairs.into_iter().enumerate() {
-        let reference: Picture = reference
-            .try_into()
-            .expect(&format!("Couldn't get reference frame at index {index}"));
-        let distorted: Picture = distorted
-            .try_into()
-            .expect("Couldn't get distorted frame at index {index}");
+    let frame_indicies = framepairs
+    .enumerate()
+    .map(|(i,(reference,distorted))|{
+        let i = i+1;
 
-        vmaf.read_framepair(reference, distorted, index as u32)
-            .expect("Coudldn't read framepair");
+        let reference: Picture = reference.try_into().expect(&format!("Couldn't get reference frame at index {i}"));
+        let distorted:Picture = distorted.try_into().expect(&format!("Couldn't get distorted frame at index {i}"));
+        vmaf.read_framepair(reference, distorted, i as u32).expect(&format!("Couldn't read framepair at index {i}"));
         decode_progress.inc(1);
-    }
+        i
+    }).collect::<Vec<_>>();
 
     vmaf.flush_framebuffers()
         .expect("Couldn't flush frame buffers");
 
+
+
     decode_progress.finish();
 
-    let scores: f64 = (1..num_frames)
-        .into_iter()
-        .map(|i| {
-            let score = vmaf
-                .get_score_at_index(&mut model, i as u32)
-                .expect(&format!("Couldn't get score at index {i}"));
-            get_score_progress.inc(1);
-            score
-        })
-        .sum::<f64>()
-        / num_frames as f64;
+    let scores = frame_indicies.iter().map(|i|{
+        let score = vmaf.get_score_at_index(&mut model, *i as u32).expect("Couldn't get score");
+        get_score_progress.inc(1);
+        score
+    });
+
 
     get_score_progress.finish();
 
-    println!("Pooled VMAF Score: {scores}");
+    let sum:f64 = scores.sum();
+    let mean = sum / f64::from(num_frames as u32);
+    println!("Pooled score: {mean}");
+    
 }
