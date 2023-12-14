@@ -45,7 +45,7 @@ impl Picture {
         let err: i32 = unsafe { vmaf_picture_alloc(pic, pix_fmt, bits_per_channel, width, height) };
 
         // Return an error if vmaf_picture_alloc returned an error code
-        FFIError::check_err(err).map_err(|e| PictureError::Construct)?;
+        FFIError::check_err(err).map_err(|_e| PictureError::Construct)?;
 
         Ok(Picture {
             vmaf_picture: Some(pic),
@@ -125,12 +125,12 @@ impl TryFrom<Video> for Picture {
 
                     let linesize_src = match (*src).linesize[i].try_into() {
                         Ok(n) => n,
-                        Err(e) => return Err(PictureError::Copy),
+                        Err(_e) => return Err(PictureError::Copy),
                     };
 
                     let linesize_dst = match (*dst).stride[i].try_into() {
                         Ok(n) => n,
-                        Err(e) => return Err(PictureError::Copy),
+                        Err(_e) => return Err(PictureError::Copy),
                     };
 
                     src_data = src_data.add(linesize_src);

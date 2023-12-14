@@ -1,4 +1,3 @@
-use errno::Errno;
 use thiserror::Error;
 
 use crate::{error::FFIError, picture::resolution::Resolution, scoring::VmafScoringError};
@@ -16,7 +15,7 @@ pub enum VmafError {
     GetScore(u32),
     /// There was a problem constructing a Vmaf Context
     #[error("Couldn't construct a vmafcontext")]
-    Construct,
+    Construct(FFIError),
     /// The two `Video`'s provided to `Vmaf::get_vmaf_scores()` had mismatching frame counts
     #[error("Mismatched frame counts: Reference: {0} Distorted: {1}")]
     MismatchedFrameCount(usize, usize),

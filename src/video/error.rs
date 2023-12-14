@@ -1,6 +1,5 @@
 use crate::picture::resolution::error::ResolutionError;
 use ffmpeg_next::format::Pixel;
-use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

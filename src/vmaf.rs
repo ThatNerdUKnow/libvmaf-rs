@@ -43,7 +43,7 @@ impl Vmaf2 {
 
         let err = unsafe { vmaf_init(&mut vmaf.context, config) };
 
-        FFIError::check_err(err).map_err(|e| VmafError::Construct)?;
+        FFIError::check_err(err).map_err(|e| VmafError::Construct(e))?;
 
         Ok(vmaf)
     }
