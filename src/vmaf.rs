@@ -1,23 +1,22 @@
-use std::{ops::Deref, ptr, rc::Rc};
+use std::{ops::Deref, ptr};
 
 use libvmaf_sys::{
     vmaf_close, vmaf_init, vmaf_read_pictures, VmafConfiguration, VmafContext, VmafLogLevel,
-    VmafPicture, VmafPoolingMethod,
+    VmafPicture, VmafPoolingMethod, vmaf_use_features_from_model,
 };
 use ptrplus::AsPtr;
 
 use crate::{
     error::FFIError,
     picture::{resolution::GetResolution, Picture, ValidRef},
-    scoring::{model::Model, VmafScoring},
+    scoring::model::Model,
     vmaf::error::VmafError,
 };
 
 pub mod error;
 
 pub struct Vmaf2 {
-    context: *mut VmafContext,
-    model: Rc<dyn VmafScoring>,
+    context: *mut VmafContext
 }
 
 impl Vmaf2 {
@@ -26,7 +25,6 @@ impl Vmaf2 {
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
-        model: Rc<Model>,
     ) -> Result<Vmaf2, VmafError> {
         let config = VmafConfiguration {
             log_level,
@@ -40,17 +38,22 @@ impl Vmaf2 {
         debug_assert!(ctx.is_null());
 
         let mut vmaf: Vmaf2 = Vmaf2 {
-            context: ctx,
-            model: model.clone(),
+            context: ctx
         };
 
         let err = unsafe { vmaf_init(&mut vmaf.context, config) };
 
         FFIError::check_err(err).map_err(|e| VmafError::Construct)?;
 
-        vmaf.model.clone().load(&mut vmaf)?;
-
         Ok(vmaf)
+    }
+
+    pub fn use_features_from_model(&mut self,model:&mut Model) ->Result<(),VmafError>{
+        let error = unsafe {
+            vmaf_use_features_from_model(self.context, **model)
+        };
+        FFIError::check_err(error)?;
+        Ok(())
     }
 
     pub fn read_framepair(
@@ -92,22 +95,33 @@ impl Vmaf2 {
         Ok(())
     }
 
-    pub fn get_score_at_index(&self, index: u32) -> Result<f64, VmafError> {
-        let score = self.model.clone().get_score_at_index(self, index)?;
+    pub fn get_score_at_index(&self,model:&mut Model, index: u32) -> Result<f64, VmafError> {
+        let mut score:f64 = f64::default();
+
+        let error = unsafe {
+            libvmaf_sys::vmaf_score_at_index(self.context, **model, &mut score, index)
+        };
+
+        FFIError::check_err(error)?;
 
         Ok(score)
     }
 
     pub fn get_score_pooled(
         &self,
+        model: &mut Model,
         pool_method: VmafPoolingMethod,
         index_low: u32,
         index_high: u32,
     ) -> Result<f64, VmafError> {
-        let score =
-            self.model
-                .clone()
-                .get_score_pooled(self, pool_method, index_low, index_high)?;
+        let mut score: f64 = f64::default();
+
+        let error = unsafe {
+            libvmaf_sys::vmaf_score_pooled(self.context, **model, pool_method, &mut score, index_low, index_high)
+        };
+
+        FFIError::check_err(error);
+        
         Ok(score)
     }
 }

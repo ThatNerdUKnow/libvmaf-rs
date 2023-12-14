@@ -17,7 +17,7 @@ fn main() {
 
     let num_frames = reference.len();
 
-    let model = Model::new(ModelConfig::default(), "vmaf_v0.6.1".to_owned())
+    let mut model = Model::new(ModelConfig::default(), "vmaf_v0.6.1".to_owned())
         .expect("Can't load vmaf model");
     //let model = Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
 
@@ -26,9 +26,10 @@ fn main() {
         num_cpus::get() as u32,
         0,
         0,
-        Rc::new(model),
     )
     .unwrap();
+
+    vmaf.use_features_from_model(&mut model);
 
     let style =
         ProgressStyle::with_template("{prefix}: {eta_precise} {wide_bar} [{pos}/{len}]").unwrap();
@@ -65,8 +66,8 @@ fn main() {
         .into_iter()
         .map(|i| {
             let score = vmaf
-                .get_score_at_index(i as u32)
-                .expect(&format!("Can't get score for frame {i}"));
+                .get_score_at_index(&mut model, i as u32)
+                .expect(&format!("Couldn't get score at index {i}"));
             get_score_progress.inc(1);
             score
         })

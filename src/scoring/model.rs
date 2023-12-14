@@ -6,7 +6,7 @@ use ptrplus::{AsPtr, IntoRaw};
 use std::{
     ffi::{c_char, CString},
     fmt::Display,
-    path::Path,
+    path::Path, ops::{DerefMut, Deref},
 };
 
 use crate::{error::FFIError, vmaf::Vmaf2};
@@ -84,6 +84,21 @@ impl Drop for Model {
             vmaf_model_destroy(self.0);
             self.0 = std::ptr::null_mut();
         }
+    }
+}
+
+impl Deref for Model{
+    type Target = *mut VmafModel;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Model{
+
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
