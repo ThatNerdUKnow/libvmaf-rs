@@ -2,9 +2,10 @@ use std::env;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use libvmaf_rs::{
+    model::{config::ModelConfig, Model},
     picture::Picture,
     video::Video,
-    vmaf::Vmaf2, model::{config::ModelConfig, Model},
+    vmaf::Vmaf,
 };
 use libvmaf_sys::VmafLogLevel;
 
@@ -21,7 +22,7 @@ fn main() {
     let mut model =
         Model::load_model(ModelConfig::default(), "./examples/vmaf_v0.6.1.json").unwrap();
 
-    let mut vmaf = Vmaf2::new(
+    let mut vmaf = Vmaf::new(
         VmafLogLevel::VMAF_LOG_LEVEL_DEBUG,
         num_cpus::get() as u32,
         0,

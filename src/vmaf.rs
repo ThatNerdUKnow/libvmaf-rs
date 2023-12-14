@@ -17,17 +17,17 @@ use self::error::VmafError;
 
 pub mod error;
 
-pub struct Vmaf2 {
+pub struct Vmaf {
     context: *mut VmafContext,
 }
 
-impl Vmaf2 {
+impl Vmaf {
     pub fn new(
         log_level: VmafLogLevel,
         n_threads: u32,
         n_subsample: u32,
         cpumask: u64,
-    ) -> Result<Vmaf2, VmafError> {
+    ) -> Result<Vmaf, VmafError> {
         let config = VmafConfiguration {
             log_level,
             n_threads,
@@ -39,7 +39,7 @@ impl Vmaf2 {
 
         debug_assert!(ctx.is_null());
 
-        let mut vmaf: Vmaf2 = Vmaf2 { context: ctx };
+        let mut vmaf: Vmaf = Vmaf { context: ctx };
 
         let err = unsafe { vmaf_init(&mut vmaf.context, config) };
 
@@ -129,7 +129,7 @@ impl Vmaf2 {
     }
 }
 
-impl Deref for Vmaf2 {
+impl Deref for Vmaf {
     type Target = *mut VmafContext;
 
     fn deref(&self) -> &Self::Target {
@@ -137,7 +137,7 @@ impl Deref for Vmaf2 {
     }
 }
 
-impl Drop for Vmaf2 {
+impl Drop for Vmaf {
     fn drop(&mut self) {
         unsafe {
             assert!(!self.context.is_null());
