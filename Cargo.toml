@@ -18,7 +18,7 @@ num_cpus = "1.14.0"
 thiserror = "1.0.37"
 error-stack = { version = "0.2.4", features = ["anyhow"] }
 ptrplus = "2.1.0"
-libvmaf-sys = "0.4.4"
+libvmaf-sys ={version= "0.4.4", default-features = false}
 
 [dev-dependencies]
 indicatif = "0.17.3"
