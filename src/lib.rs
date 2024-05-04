@@ -20,3 +20,5 @@ pub mod video;
 
 /// FFI Error types
 pub mod error;
+
+pub use libvmaf_sys as libvmaf_sys;
